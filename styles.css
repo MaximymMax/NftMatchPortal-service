@@ -37,8 +37,8 @@ body {
     padding: 0 15px;
     background: transparent;
     pointer-events: none;
-    /* Add safe area for Telegram WebApp header buttons + 60px extra */
-    padding-top: calc(env(safe-area-inset-top, 0px) + 60px);
+    /* Add safe area for Telegram WebApp header buttons + 100px extra */
+    padding-top: calc(env(safe-area-inset-top, 0px) + 100px);
 }
 
 .fixed-ui::before {
@@ -373,8 +373,8 @@ body {
 /* Content Grid */
 .content-wrapper {
     padding: 0 15px;
-    /* Increased top padding +60px base to account for header changes */
-    padding-top: 340px;
+    /* Increased top padding +100px base to account for header changes */
+    padding-top: 380px;
 }
 
 .nft-grid {
@@ -1083,6 +1083,13 @@ body {
     /* Use more opaque backgrounds instead of glass */
     .stat-card {
         background: rgba(33, 38, 48, 0.98) !important;
+    }
+
+    /* Restore Unique Card styling on mobile */
+    .nft-card.unique {
+        background: rgba(77, 166, 255, 0.2) !important;
+        border: 2px solid #4da6ff !important;
+        box-shadow: 0 0 15px rgba(77, 166, 255, 0.3) !important;
     }
 
     .bottom-sheet {

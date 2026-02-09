@@ -224,7 +224,7 @@ const sortedColorDefinitions = [...colorDefinitions].sort((a, b) => {
 // --- STATE MANAGEMENT ---
 let filterState = {
     page: 1,
-    limit: 50,
+    limit: 20, // Reduced for smoother infinite scroll
     minPrice: null,
     maxPrice: null,
     sortBy: 'monochrome',
@@ -235,6 +235,9 @@ let filterState = {
     ignoreMonochrome: false,
     ignoreMarkup: false
 };
+
+let isLoading = false;
+let hasMore = true;
 
 // --- UNIVERSAL CACHING UTILITY ---
 const CacheManager = {
@@ -456,19 +459,24 @@ function createNFTCard(apiItem) {
 }
 
 // --- RENDER LOGIC ---
-function renderDeals(responseData) {
+function renderDeals(responseData, append = false) {
     const grid = document.getElementById('nftGrid');
+
+    // Hide old pagination controls if they exist
     const paginationControls = document.getElementById('paginationControls');
-    const pageIndicator = document.getElementById('pageIndicator');
-    const prevBtn = document.getElementById('prevPage');
-    const nextBtn = document.getElementById('nextPage');
+    if (paginationControls) paginationControls.style.display = 'none';
 
     if (!grid) return;
-    grid.innerHTML = '';
+
+    if (!append) {
+        grid.innerHTML = '';
+        window.scrollTo({ top: 0, behavior: 'auto' });
+    }
 
     const deals = responseData.Items || [];
     const totalPages = responseData.TotalPages || 1;
-    const currentPage = responseData.CurrentPage || 1;
+
+    hasMore = filterState.page < totalPages;
 
     if (deals && deals.length > 0) {
         // Filter out items with Count === 0
@@ -495,25 +503,9 @@ function renderDeals(responseData) {
                 document.getElementById('lastUpdateTime').textContent = timeFromDeals;
             }
         }
-
-        // Show pagination only if more than 1 page
-        if (totalPages > 1) {
-            paginationControls.style.display = 'flex';
-            pageIndicator.textContent = `${currentPage} / ${totalPages}`;
-            prevBtn.disabled = currentPage <= 1;
-            nextBtn.disabled = currentPage >= totalPages;
-        } else {
-            paginationControls.style.display = 'none';
-        }
-
     } else {
-        grid.innerHTML = '<div style="grid-column: 1/-1; text-align: center; padding: 20px; font-size: 18px; opacity: 0.7;">No deals match your filters</div>';
-        if (filterState.page > 1) {
-            paginationControls.style.display = 'flex';
-            prevBtn.disabled = false;
-            nextBtn.disabled = true;
-        } else {
-            paginationControls.style.display = 'none';
+        if (!append) {
+            grid.innerHTML = '<div style="grid-column: 1/-1; text-align: center; padding: 20px; font-size: 18px; opacity: 0.7;">No deals match your filters</div>';
         }
     }
 
@@ -551,11 +543,33 @@ function setCachedDeals(payload, response) {
 }
 
 // --- API ---
-async function fetchDeals() {
-    const grid = document.getElementById('nftGrid');
-    if (!grid) return;
+async function fetchDeals(isLoadMore = false) {
+    if (isLoading) return;
 
-    grid.style.opacity = '0.5';
+    // If we're loading more but there's no more data, stop
+    if (isLoadMore && !hasMore) return;
+
+    if (!isLoadMore) {
+        // Reset state for new filter
+        filterState.page = 1;
+        hasMore = true;
+    }
+
+    isLoading = true;
+    const grid = document.getElementById('nftGrid');
+
+    // Show simple loading indicator if appending
+    let loadingIndicator = null;
+    if (isLoadMore && grid) {
+        loadingIndicator = document.createElement('div');
+        loadingIndicator.style.gridColumn = '1/-1';
+        loadingIndicator.style.textAlign = 'center';
+        loadingIndicator.style.padding = '20px';
+        loadingIndicator.innerHTML = '<span style="opacity: 0.7;">Loading more...</span>';
+        grid.appendChild(loadingIndicator);
+    } else if (grid && !isLoadMore) {
+        grid.style.opacity = '0.5';
+    }
 
     try {
         const rangeInput = document.getElementById('percentageRange');
@@ -594,12 +608,11 @@ async function fetchDeals() {
         const cached = getCachedDeals(payload);
         if (cached) {
             console.log('Using cached deals data');
-            renderDeals(cached);
+            if (loadingIndicator) loadingIndicator.remove();
+            renderDeals(cached, isLoadMore);
             updateSearchButtonState(false);
             grid.style.opacity = '1';
-            if (filterState.page > 1) {
-                window.scrollTo({ top: 0, behavior: 'smooth' });
-            }
+            isLoading = false;
             return;
         }
 
@@ -621,20 +634,35 @@ async function fetchDeals() {
         // Cache the response
         setCachedDeals(payload, data);
 
-        renderDeals(data);
+        if (loadingIndicator) loadingIndicator.remove();
+        renderDeals(data, isLoadMore);
         updateSearchButtonState(false);
-
-        if (filterState.page > 1) {
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-        }
 
     } catch (error) {
         console.error('Fetch error:', error);
-        grid.innerHTML = '<div style="grid-column: 1/-1; text-align: center; padding: 20px; color: #ff6b6b;">Error loading deals</div>';
+        if (loadingIndicator) loadingIndicator.remove();
+        if (!isLoadMore && grid) {
+            grid.innerHTML = '<div style="grid-column: 1/-1; text-align: center; padding: 20px; color: #ff6b6b;">Error loading deals</div>';
+        }
     } finally {
-        grid.style.opacity = '1';
+        if (grid) grid.style.opacity = '1';
+        isLoading = false;
     }
 }
+
+// --- INFINITE SCROLL HANDLER ---
+function setupInfiniteScroll() {
+    window.addEventListener('scroll', () => {
+        // Check if we're near the bottom of the page
+        if ((window.innerHeight + window.scrollY) >= document.body.offsetHeight - 800) {
+            if (!isLoading && hasMore) {
+                filterState.page++;
+                fetchDeals(true);
+            }
+        }
+    });
+}
+
 
 // --- UI HELPERS FOR LISTS ---
 
@@ -1081,5 +1109,7 @@ document.addEventListener('DOMContentLoaded', () => {
     fetchLastUpdateTime();
 
     // Fetch deals
+    // Fetch deals
     fetchDeals();
+    setupInfiniteScroll();
 });
