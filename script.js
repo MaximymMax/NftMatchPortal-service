@@ -224,7 +224,7 @@ const sortedColorDefinitions = [...colorDefinitions].sort((a, b) => {
 // --- STATE MANAGEMENT ---
 let filterState = {
     page: 1,
-    limit: 100,
+    limit: 50,
     minPrice: null,
     maxPrice: null,
     sortBy: 'monochrome',

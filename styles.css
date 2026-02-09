@@ -398,9 +398,8 @@ body {
     box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
 
     /* Removed content-visibility: auto as it clips overflowing content like badges */
-    will-change: transform;
-    transform: translateZ(0);
-    /* Hardware acceleration */
+    /* will-change: transform; - Removed for performance */
+    /* transform: translateZ(0); - Removed for performance */
 }
 
 @supports (backdrop-filter: blur(10px)) {
@@ -1065,6 +1064,50 @@ body {
 .dt-value {
     text-align: right;
     color: #fff;
+}
+
+/* --- MOBILE PERFORMANCE OPTIMIZATIONS --- */
+@media (max-width: 768px) {
+
+    /* Disable expensive backdrop-filter on mobile */
+    .stat-card,
+    .filter-btn,
+    .card-count-badge,
+    .bottom-sheet,
+    .overlay,
+    .fixed-ui::before {
+        backdrop-filter: none !important;
+        -webkit-backdrop-filter: none !important;
+    }
+
+    /* Use more opaque backgrounds instead of glass */
+    .stat-card {
+        background: rgba(33, 38, 48, 0.98) !important;
+    }
+
+    .bottom-sheet {
+        background: #1c2028 !important;
+    }
+
+    /* Simplify shadows */
+    .nft-card {
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2) !important;
+    }
+
+    .filter-btn {
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2) !important;
+    }
+
+    /* Optimize gradients */
+    .card-background {
+        opacity: 0.95;
+        /* Less transparent = easier to composite */
+    }
+
+    /* Disable some animations */
+    .filter-btn {
+        transition: transform 0.1s, background 0.1s !important;
+    }
 }
 
 .highlight-gold {

@@ -9,7 +9,7 @@ class LiquidGlassEffect {
      */
     init() {
         // Optimization: Disable expensive glass effect layers on mobile/small screens
-        if (window.innerWidth < 768 || /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
+        if (window.innerWidth < 1024 || /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
             console.log('Mobile device detected: Glass effect disabled for performance');
             return;
         }
