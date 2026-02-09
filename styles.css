@@ -392,15 +392,12 @@ body {
     background: rgba(33, 38, 48, 0.85);
     /* Fallback */
     border-radius: 20px;
-    overflow: hidden;
-    /* Changed from visible to hidden for performance */
+    overflow: visible;
+    /* Reverted to visible for badge */
     border: 1px solid rgba(255, 255, 255, 0.1);
     box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
 
-    /* Performance optimizations */
-    content-visibility: auto;
-    contain-intrinsic-size: 1px 200px;
-    /* Estimate height */
+    /* Removed content-visibility: auto as it clips overflowing content like badges */
     will-change: transform;
     transform: translateZ(0);
     /* Hardware acceleration */
