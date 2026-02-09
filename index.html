@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="ru">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>NFT Match</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Lilita+One&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="glass-effect.css">
+    <link rel="stylesheet" href="styles-fab.css">
+</head>
+
+<body>
+    <div class="container">
+        <div class="fixed-ui">
+            <div class="header">
+                <div class="header-left">
+                    <img src="logoNFTMatch.png" alt="NFT Match" class="logo">
+                    <div class="title-wrapper">
+                        <span class="api-by-text">API by</span>
+                        <h1 class="title">NFT Match</h1>
+                    </div>
+                </div>
+
+                <div class="last-update" id="btnShowInfo">
+                    <span class="update-label">Last Update:</span>
+                    <span class="update-time" id="lastUpdateTime">Loading...</span>
+                </div>
+            </div>
+
+            <div class="stats-section">
+                <div class="stat-card progress-card">
+                    <label class="stat-toggle">
+                        <input type="checkbox" id="ignoreMonochromeInline" checked>
+                        <span class="stat-toggle-slider"></span>
+                    </label>
+                    <div class="stat-header">
+                        <span class="stat-title">Monochrome coof ></span>
+                        <span class="stat-percentage" id="percentageValue">90%</span>
+                    </div>
+                    <div class="progress-wrapper">
+                        <input type="range" min="0" max="100" value="90" class="custom-range" id="percentageRange">
+                    </div>
+                </div>
+
+                <div class="stat-card limit-card">
+                    <label class="stat-toggle">
+                        <input type="checkbox" id="ignoreMarkupInline" checked>
+                        <span class="stat-toggle-slider"></span>
+                    </label>
+                    <div class="limit-title">Max Markup</div>
+                    <div class="limit-content">
+                        <input type="number" class="limit-input" placeholder="30" id="markupInput">
+                        <div class="limit-currency">%</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="filters-row">
+                <div class="filters-scroll">
+                    <div class="filter-btn filter-text" id="btnBackgrounds" data-filter="backgrounds">Backgrounds: All
+                    </div>
+                    <div class="filter-btn filter-text" id="btnCollections" data-filter="collections">Collections: All
+                    </div>
+                </div>
+
+                <div class="filters-fixed">
+                    <div class="filter-btn filter-icon" id="btnFilterSettings">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>
+                        </svg>
+                    </div>
+
+                    <div class="filter-btn filter-icon action-search" id="btnSearch">
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="11" cy="11" r="8"></circle>
+                            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                        </svg>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="content-wrapper">
+            <div class="nft-grid" id="nftGrid">
+            </div>
+        </div>
+
+        <!-- Floating Menu -->
+        <div class="floating-menu" id="floatingMenu">
+            <button class="menu-toggle" id="menuToggle">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="12" y1="5" x2="12" y2="19"></line>
+                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                </svg>
+            </button>
+            <div class="menu-items">
+                <a href="index.html" class="menu-item active">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+                        <polyline points="9 22 9 12 15 12 15 22"></polyline>
+                    </svg>
+                    <span>Main</span>
+                </a>
+                <a href="analytics.html" class="menu-item">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="12" y1="20" x2="12" y2="10"></line>
+                        <line x1="18" y1="20" x2="18" y2="4"></line>
+                        <line x1="6" y1="20" x2="6" y2="16"></line>
+                    </svg>
+                    <span>Analytics</span>
+                </a>
+            </div>
+        </div>
+
+        <div class="pagination-controls" id="paginationControls" style="display: none;">
+            <button class="page-btn" id="prevPage">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="15 18 9 12 15 6"></polyline>
+                </svg>
+            </button>
+            <span class="page-number" id="pageIndicator">1</span>
+            <button class="page-btn" id="nextPage">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="9 18 15 12 9 6"></polyline>
+                </svg>
+            </button>
+        </div>
+
+        <div class="overlay" id="overlay"></div>
+
+        <div class="bottom-sheet" id="settingsModal">
+            <div class="sheet-header">
+                <span>Filters & Sort</span>
+                <div class="close-btn" id="closeSettings">✕</div>
+            </div>
+            <div class="sheet-content">
+                <div class="filter-group">
+                    <label>Price Range (TON)</label>
+                    <div class="price-inputs">
+                        <input type="number" id="filterMinPrice" placeholder="Min" class="sheet-input">
+                        <span style="opacity:0.5">-</span>
+                        <input type="number" id="filterMaxPrice" placeholder="Max" class="sheet-input">
+                    </div>
+                </div>
+
+                <div class="filter-group">
+                    <label>Sort By</label>
+                    <div class="radio-group">
+                        <label class="radio-item">
+                            <input type="radio" name="sortBy" value="monochrome" checked>
+                            <span class="radio-label">Similarity</span>
+                        </label>
+                        <label class="radio-item">
+                            <input type="radio" name="sortBy" value="price">
+                            <span class="radio-label">Price</span>
+                        </label>
+                        <label class="radio-item">
+                            <input type="radio" name="sortBy" value="markup">
+                            <span class="radio-label">Markup</span>
+                        </label>
+                        <label class="radio-item">
+                            <input type="radio" name="sortBy" value="count">
+                            <span class="radio-label">Count</span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="filter-group">
+                    <label>Order</label>
+                    <div class="radio-group">
+                        <label class="radio-item">
+                            <input type="radio" name="sortOrder" value="desc" checked>
+                            <span class="radio-label">High to Low ⬇</span>
+                        </label>
+                        <label class="radio-item">
+                            <input type="radio" name="sortOrder" value="asc">
+                            <span class="radio-label">Low to High ⬆</span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="filter-group">
+                    <label>Show Only</label>
+                    <div class="checkbox-group">
+                        <label class="checkbox-item">
+                            <input type="checkbox" id="filterOnlyUnique">
+                            <span class="checkbox-label">Only Unique Gifts</span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+            <div class="sheet-footer">
+                <button class="apply-btn" id="applySettings">Apply Filters</button>
+            </div>
+        </div>
+
+        <div class="bottom-sheet" id="colorsModal">
+            <div class="sheet-header">
+                <span>Select Backgrounds</span>
+                <div class="close-btn" id="closeColors">✕</div>
+            </div>
+            <div class="sheet-content">
+                <div class="color-search-wrapper">
+                    <input type="text" class="color-search-input" id="colorSearchInput" placeholder="Search color...">
+                </div>
+
+                <div class="select-all-wrapper">
+                    <button class="select-all-btn" id="btnSelectAllColors">Select All</button>
+                </div>
+                <div class="colors-grid" id="colorsList"></div>
+            </div>
+            <div class="sheet-footer">
+                <button class="apply-btn" id="applyColors">Apply Colors</button>
+            </div>
+        </div>
+
+        <div class="bottom-sheet" id="collectionsModal">
+            <div class="sheet-header">
+                <span>Select Collections</span>
+                <div class="close-btn" id="closeCollections">✕</div>
+            </div>
+            <div class="sheet-content">
+                <div class="color-search-wrapper">
+                    <input type="text" class="color-search-input" id="collectionSearchInput"
+                        placeholder="Search collection...">
+                </div>
+
+                <div class="select-all-wrapper">
+                    <button class="select-all-btn" id="btnSelectAllCollections">Select All</button>
+                </div>
+                <div class="colors-grid" id="collectionsList">
+                </div>
+            </div>
+            <div class="sheet-footer">
+                <button class="apply-btn" id="applyCollections">Apply Collections</button>
+            </div>
+        </div>
+
+        <div class="bottom-sheet" id="itemModal">
+            <div class="sheet-header">
+                <span>Gift Details</span>
+                <div class="close-btn" id="closeItem">✕</div>
+            </div>
+            <div class="sheet-content">
+                <h2 class="detail-collection-title" id="dCollectionTitle">Collection Name</h2>
+
+                <div class="detail-image-simple">
+                    <img src="" alt="Gift" class="detail-img-rounded" id="detailImg">
+                    <div class="detail-number-badge" id="detailNumber">#0</div>
+                </div>
+
+                <div class="detail-info-block">
+                    <table class="detail-table">
+                        <tr>
+                            <td class="dt-label">Model</td>
+                            <td class="dt-value" id="dModel">...</td>
+                        </tr>
+                        <tr>
+                            <td class="dt-label">Background</td>
+                            <td class="dt-value" id="dBackground">...</td>
+                        </tr>
+                        <tr>
+                            <td class="dt-label">Monochrome</td>
+                            <td class="dt-value" id="dCoof">...</td>
+                        </tr>
+                        <tr>
+                            <td class="dt-label">Market</td>
+                            <td class="dt-value" id="dMarket">...</td>
+                        </tr>
+                        <tr>
+                            <td class="dt-label">Floor Price</td>
+                            <td class="dt-value" id="dFloor">...</td>
+                        </tr>
+                        <tr class="total-row">
+                            <td class="dt-label">Price</td>
+                            <td class="dt-value highlight-gold" id="dPrice">...</td>
+                        </tr>
+                    </table>
+                </div>
+
+                <button class="apply-btn action-telegram" id="btnGoToMarket">
+                    View in Telegram
+                </button>
+            </div>
+        </div>
+
+        <div class="bottom-sheet" id="infoModal">
+            <div class="sheet-header">
+                <span>Information</span>
+                <div class="close-btn" id="closeInfo">✕</div>
+            </div>
+            <div class="sheet-content">
+                <p class="info-text">
+                    Data updates automatically every 30 minutes.<br><br>
+                    Some gifts shown may have already been sold or removed from the marketplace.<br><br>
+                    We recommend verifying availability on the market before purchasing.
+                </p>
+            </div>
+        </div>
+
+    </div>
+
+    <script src="telegram-webapp.js"></script>
+    <script src="glass-effect.js"></script>
+    <script src="menu.js"></script>
+    <script src="script.js"></script>
+</body>
+
+</html>
