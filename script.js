@@ -224,7 +224,7 @@ const sortedColorDefinitions = [...colorDefinitions].sort((a, b) => {
 // --- STATE MANAGEMENT ---
 let filterState = {
     page: 1,
-    limit: 20, // Reduced for smoother infinite scroll
+    limit: 50, // Cards per page
     minPrice: null,
     maxPrice: null,
     sortBy: 'monochrome',
@@ -237,7 +237,10 @@ let filterState = {
 };
 
 let isLoading = false;
-let hasMore = true;
+let totalPages = 1;
+let currentPageData = []; // Store current page cards for lazy rendering
+let renderedCardsCount = 0; // How many cards we've rendered so far
+const CARDS_PER_BATCH = 10; // Render 10 cards at a time when scrolling
 
 // --- UNIVERSAL CACHING UTILITY ---
 const CacheManager = {
@@ -458,43 +461,31 @@ function createNFTCard(apiItem) {
     return card;
 }
 
-// --- RENDER LOGIC ---
-function renderDeals(responseData, append = false) {
+// --- RENDER LOGIC WITH LAZY LOADING ---
+function renderDeals(responseData) {
     const grid = document.getElementById('nftGrid');
-
-    // Hide old pagination controls if they exist
-    const paginationControls = document.getElementById('paginationControls');
-    if (paginationControls) paginationControls.style.display = 'none';
-
     if (!grid) return;
 
-    if (!append) {
-        grid.innerHTML = '';
-        window.scrollTo({ top: 0, behavior: 'auto' });
-    }
+    grid.innerHTML = '';
+    window.scrollTo({ top: 0, behavior: 'auto' });
 
     const deals = responseData.Items || [];
-    const totalPages = responseData.TotalPages || 1;
+    totalPages = responseData.TotalPages || 1;
 
-    hasMore = filterState.page < totalPages;
+    // Filter out items with Count === 0
+    currentPageData = deals.filter(item => item.Count > 0);
+    renderedCardsCount = 0;
 
-    if (deals && deals.length > 0) {
-        // Filter out items with Count === 0
-        const validDeals = deals.filter(item => item.Count > 0);
+    if (currentPageData.length > 0) {
+        // Render first batch immediately
+        renderNextBatch();
 
-        // Use DocumentFragment for batch insertion to improve performance
-        const fragment = document.createDocumentFragment();
-
-        // Update "Last Updated" based on the most recent deal in this batch
+        // Update "Last Updated" based on the most recent deal
         let maxTime = 0;
-        validDeals.forEach(item => {
+        currentPageData.forEach(item => {
             const t = new Date(item.UpdatedAt).getTime();
             if (t > maxTime) maxTime = t;
-            const card = createNFTCard(item);
-            fragment.appendChild(card);
         });
-
-        grid.appendChild(fragment);
 
         if (maxTime > 0) {
             const timeFromDeals = formatTime(new Date(maxTime));
@@ -504,10 +495,11 @@ function renderDeals(responseData, append = false) {
             }
         }
     } else {
-        if (!append) {
-            grid.innerHTML = '<div style="grid-column: 1/-1; text-align: center; padding: 20px; font-size: 18px; opacity: 0.7;">No deals match your filters</div>';
-        }
+        grid.innerHTML = '<div style="grid-column: 1/-1; text-align: center; padding: 20px; font-size: 18px; opacity: 0.7;">No deals match your filters</div>';
     }
+
+    // Show pagination controls
+    updatePaginationControls();
 
     // Update Filter Button Texts
     const bgBtn = document.getElementById('btnBackgrounds');
@@ -543,31 +535,13 @@ function setCachedDeals(payload, response) {
 }
 
 // --- API ---
-async function fetchDeals(isLoadMore = false) {
+async function fetchDeals() {
     if (isLoading) return;
-
-    // If we're loading more but there's no more data, stop
-    if (isLoadMore && !hasMore) return;
-
-    if (!isLoadMore) {
-        // Reset state for new filter
-        filterState.page = 1;
-        hasMore = true;
-    }
 
     isLoading = true;
     const grid = document.getElementById('nftGrid');
 
-    // Show simple loading indicator if appending
-    let loadingIndicator = null;
-    if (isLoadMore && grid) {
-        loadingIndicator = document.createElement('div');
-        loadingIndicator.style.gridColumn = '1/-1';
-        loadingIndicator.style.textAlign = 'center';
-        loadingIndicator.style.padding = '20px';
-        loadingIndicator.innerHTML = '<span style="opacity: 0.7;">Loading more...</span>';
-        grid.appendChild(loadingIndicator);
-    } else if (grid && !isLoadMore) {
+    if (grid) {
         grid.style.opacity = '0.5';
     }
 
@@ -608,10 +582,9 @@ async function fetchDeals(isLoadMore = false) {
         const cached = getCachedDeals(payload);
         if (cached) {
             console.log('Using cached deals data');
-            if (loadingIndicator) loadingIndicator.remove();
-            renderDeals(cached, isLoadMore);
+            renderDeals(cached);
             updateSearchButtonState(false);
-            grid.style.opacity = '1';
+            if (grid) grid.style.opacity = '1';
             isLoading = false;
             return;
         }
@@ -634,14 +607,12 @@ async function fetchDeals(isLoadMore = false) {
         // Cache the response
         setCachedDeals(payload, data);
 
-        if (loadingIndicator) loadingIndicator.remove();
-        renderDeals(data, isLoadMore);
+        renderDeals(data);
         updateSearchButtonState(false);
 
     } catch (error) {
         console.error('Fetch error:', error);
-        if (loadingIndicator) loadingIndicator.remove();
-        if (!isLoadMore && grid) {
+        if (grid) {
             grid.innerHTML = '<div style="grid-column: 1/-1; text-align: center; padding: 20px; color: #ff6b6b;">Error loading deals</div>';
         }
     } finally {
@@ -650,26 +621,71 @@ async function fetchDeals(isLoadMore = false) {
     }
 }
 
-// --- INFINITE SCROLL HANDLER WITH THROTTLING ---
+// --- LAZY CARD RENDERING ON SCROLL ---
 let scrollThrottleTimer = null;
 
-function setupInfiniteScroll() {
+function renderNextBatch() {
+    const grid = document.getElementById('nftGrid');
+    if (!grid) return;
+
+    const fragment = document.createDocumentFragment();
+    const endIndex = Math.min(renderedCardsCount + CARDS_PER_BATCH, currentPageData.length);
+
+    for (let i = renderedCardsCount; i < endIndex; i++) {
+        const card = createNFTCard(currentPageData[i]);
+        fragment.appendChild(card);
+    }
+
+    grid.appendChild(fragment);
+    renderedCardsCount = endIndex;
+}
+
+function setupLazyCardLoading() {
     window.addEventListener('scroll', () => {
-        // Throttle scroll events to improve performance (max once per 100ms)
+        // Throttle scroll events to improve performance (max once per 150ms)
         if (scrollThrottleTimer) return;
 
         scrollThrottleTimer = setTimeout(() => {
             scrollThrottleTimer = null;
 
-            // Check if we're near the bottom of the page
-            if ((window.innerHeight + window.scrollY) >= document.body.offsetHeight - 800) {
-                if (!isLoading && hasMore) {
-                    filterState.page++;
-                    fetchDeals(true);
+            // Check if we're near the bottom and have more cards to render
+            if ((window.innerHeight + window.scrollY) >= document.body.offsetHeight - 600) {
+                if (renderedCardsCount < currentPageData.length) {
+                    renderNextBatch();
                 }
             }
-        }, 100);
-    }, { passive: true }); // passive listener for better scroll performance
+        }, 150);
+    }, { passive: true });
+}
+
+// --- PAGINATION CONTROLS ---
+function updatePaginationControls() {
+    const paginationControls = document.getElementById('paginationControls');
+    const pageIndicator = document.getElementById('pageIndicator');
+    const prevBtn = document.getElementById('prevPage');
+    const nextBtn = document.getElementById('nextPage');
+
+    if (!paginationControls) return;
+
+    paginationControls.style.display = 'flex';
+    pageIndicator.textContent = `${filterState.page} / ${totalPages}`;
+
+    prevBtn.disabled = filterState.page === 1;
+    nextBtn.disabled = filterState.page >= totalPages;
+}
+
+function goToPreviousPage() {
+    if (filterState.page > 1) {
+        filterState.page--;
+        fetchDeals();
+    }
+}
+
+function goToNextPage() {
+    if (filterState.page < totalPages) {
+        filterState.page++;
+        fetchDeals();
+    }
 }
 
 
@@ -1117,8 +1133,19 @@ document.addEventListener('DOMContentLoaded', () => {
     // Fetch last update time from API
     fetchLastUpdateTime();
 
-    // Fetch deals
-    // Fetch deals
+    // Setup pagination button handlers
+    const prevBtn = document.getElementById('prevPage');
+    const nextBtn = document.getElementById('nextPage');
+
+    if (prevBtn) {
+        prevBtn.addEventListener('click', goToPreviousPage);
+    }
+
+    if (nextBtn) {
+        nextBtn.addEventListener('click', goToNextPage);
+    }
+
+    // Fetch deals and setup lazy card loading
     fetchDeals();
-    setupInfiniteScroll();
+    setupLazyCardLoading();
 });

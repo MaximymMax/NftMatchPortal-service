@@ -165,8 +165,8 @@ body {
 @supports (backdrop-filter: blur(20px)) {
     .stat-card {
         background: rgba(33, 38, 48, 0.6);
-        backdrop-filter: blur(20px);
-        -webkit-backdrop-filter: blur(20px);
+        backdrop-filter: blur(15px);
+        -webkit-backdrop-filter: blur(15px);
     }
 }
 
@@ -231,8 +231,8 @@ body {
 @supports (backdrop-filter: blur(12px)) {
     .filter-btn {
         background: rgba(255, 255, 255, 0.08);
-        backdrop-filter: blur(12px);
-        -webkit-backdrop-filter: blur(12px);
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
     }
 }
 
@@ -373,8 +373,8 @@ body {
 /* Content Grid */
 .content-wrapper {
     padding: 0 15px;
-    /* Fixed top padding for consistent spacing across all devices */
-    padding-top: 380px;
+    /* Reduced top padding for better mobile experience */
+    padding-top: 320px;
 }
 
 .nft-grid {
@@ -518,11 +518,13 @@ body {
 }
 
 .nft-card.unique .card-count-badge {
-    background: rgba(77, 166, 255, 0.2);
-    border-color: rgba(77, 166, 255, 0.4);
+    background: rgba(77, 166, 255, 0.25);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border-color: rgba(77, 166, 255, 0.5);
     color: #4da6ff;
     font-weight: 400;
-    box-shadow: 0 0 12px rgba(77, 166, 255, 0.3), 0 2px 8px rgba(0, 0, 0, 0.3);
+    box-shadow: 0 0 15px rgba(77, 166, 255, 0.4), 0 2px 8px rgba(0, 0, 0, 0.3);
 }
 
 
@@ -1031,11 +1033,13 @@ body {
 }
 
 .nft-card.unique .card-count-badge {
-    background: rgba(77, 166, 255, 0.2);
-    border-color: rgba(77, 166, 255, 0.4);
+    background: rgba(77, 166, 255, 0.25);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border-color: rgba(77, 166, 255, 0.5);
     color: #4da6ff;
     font-weight: 400;
-    box-shadow: 0 0 12px rgba(77, 166, 255, 0.3), 0 2px 8px rgba(0, 0, 0, 0.3);
+    box-shadow: 0 0 15px rgba(77, 166, 255, 0.4), 0 2px 8px rgba(0, 0, 0, 0.3);
 }
 
 .detail-table {
@@ -1066,19 +1070,16 @@ body {
 /* --- MOBILE PERFORMANCE OPTIMIZATIONS --- */
 @media (max-width: 768px) {
 
-    /* Disable expensive backdrop-filter on mobile for most elements */
-    .stat-card,
-    .filter-btn,
-    .bottom-sheet,
-    .overlay,
-    .fixed-ui::before {
-        backdrop-filter: none !important;
-        -webkit-backdrop-filter: none !important;
+    /* Use lighter blur on mobile for better performance */
+    .stat-card {
+        background: rgba(33, 38, 48, 0.85) !important;
+        backdrop-filter: blur(8px) !important;
+        -webkit-backdrop-filter: blur(8px) !important;
     }
 
-    /* Use more opaque backgrounds instead of glass */
-    .stat-card {
-        background: rgba(33, 38, 48, 0.98) !important;
+    .filter-btn {
+        backdrop-filter: blur(5px) !important;
+        -webkit-backdrop-filter: blur(5px) !important;
     }
 
     /* Restore Unique Card styling on mobile */
@@ -1088,25 +1089,32 @@ body {
         box-shadow: 0 0 12px rgba(77, 166, 255, 0.25) !important;
     }
 
-    /* UNIQUE badge with blue background on mobile (no blur for perf) */
+    /* UNIQUE badge with blue background and light blur on mobile */
     .nft-card.unique .card-count-badge {
-        background: rgba(77, 166, 255, 0.35) !important;
-        backdrop-filter: none !important;
-        -webkit-backdrop-filter: none !important;
+        background: rgba(77, 166, 255, 0.3) !important;
+        backdrop-filter: blur(8px) !important;
+        -webkit-backdrop-filter: blur(8px) !important;
         border-color: rgba(77, 166, 255, 0.5) !important;
         color: #7cc4ff !important;
-        box-shadow: 0 0 10px rgba(77, 166, 255, 0.3), 0 2px 6px rgba(0, 0, 0, 0.3) !important;
+        box-shadow: 0 0 12px rgba(77, 166, 255, 0.35), 0 2px 6px rgba(0, 0, 0, 0.3) !important;
     }
 
-    /* Regular badge - no blur for performance */
+    /* Regular badge - light blur for performance */
     .card-count-badge {
-        backdrop-filter: none !important;
-        -webkit-backdrop-filter: none !important;
-        background: rgba(30, 35, 45, 0.95) !important;
+        backdrop-filter: blur(6px) !important;
+        -webkit-backdrop-filter: blur(6px) !important;
+        background: rgba(30, 35, 45, 0.9) !important;
     }
 
     .bottom-sheet {
-        background: #1c2028 !important;
+        background: rgba(28, 32, 40, 0.95) !important;
+        backdrop-filter: blur(10px) !important;
+        -webkit-backdrop-filter: blur(10px) !important;
+    }
+
+    .overlay {
+        backdrop-filter: blur(3px) !important;
+        -webkit-backdrop-filter: blur(3px) !important;
     }
 
     /* Simplify shadows */
@@ -1137,6 +1145,8 @@ body {
     /* Simplify fixed-ui gradient */
     .fixed-ui::before {
         background: linear-gradient(180deg, #000 0%, #000 60%, transparent 100%) !important;
+        backdrop-filter: none !important;
+        -webkit-backdrop-filter: none !important;
     }
 }
 
