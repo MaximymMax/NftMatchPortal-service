@@ -373,7 +373,7 @@ body {
 /* Content Grid */
 .content-wrapper {
     padding: 0 15px;
-    /* Increased top padding +100px base to account for header changes */
+    /* Fixed top padding for consistent spacing across all devices */
     padding-top: 380px;
 }
 
@@ -532,10 +532,7 @@ body {
         row-gap: 32px;
     }
 
-    .content-wrapper {
-        padding-top: 330px;
-        /* Adjusted for larger screens */
-    }
+    /* Keep same padding-top as mobile for consistency */
 }
 
 
@@ -1069,10 +1066,9 @@ body {
 /* --- MOBILE PERFORMANCE OPTIMIZATIONS --- */
 @media (max-width: 768px) {
 
-    /* Disable expensive backdrop-filter on mobile */
+    /* Disable expensive backdrop-filter on mobile for most elements */
     .stat-card,
     .filter-btn,
-    .card-count-badge,
     .bottom-sheet,
     .overlay,
     .fixed-ui::before {
@@ -1087,9 +1083,26 @@ body {
 
     /* Restore Unique Card styling on mobile */
     .nft-card.unique {
-        background: rgba(77, 166, 255, 0.2) !important;
+        background: rgba(77, 166, 255, 0.15) !important;
         border: 2px solid #4da6ff !important;
-        box-shadow: 0 0 15px rgba(77, 166, 255, 0.3) !important;
+        box-shadow: 0 0 12px rgba(77, 166, 255, 0.25) !important;
+    }
+
+    /* UNIQUE badge with blue background on mobile (no blur for perf) */
+    .nft-card.unique .card-count-badge {
+        background: rgba(77, 166, 255, 0.35) !important;
+        backdrop-filter: none !important;
+        -webkit-backdrop-filter: none !important;
+        border-color: rgba(77, 166, 255, 0.5) !important;
+        color: #7cc4ff !important;
+        box-shadow: 0 0 10px rgba(77, 166, 255, 0.3), 0 2px 6px rgba(0, 0, 0, 0.3) !important;
+    }
+
+    /* Regular badge - no blur for performance */
+    .card-count-badge {
+        backdrop-filter: none !important;
+        -webkit-backdrop-filter: none !important;
+        background: rgba(30, 35, 45, 0.95) !important;
     }
 
     .bottom-sheet {
@@ -1111,9 +1124,19 @@ body {
         /* Less transparent = easier to composite */
     }
 
-    /* Disable some animations */
+    /* Disable animations for performance */
     .filter-btn {
         transition: transform 0.1s, background 0.1s !important;
+    }
+
+    /* Disable will-change and GPU hints for low-end devices */
+    .card-image {
+        will-change: auto !important;
+    }
+
+    /* Simplify fixed-ui gradient */
+    .fixed-ui::before {
+        background: linear-gradient(180deg, #000 0%, #000 60%, transparent 100%) !important;
     }
 }
 

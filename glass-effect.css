@@ -125,3 +125,25 @@
     opacity: 0.4;
     z-index: 0;
 }
+
+/* MOBILE PERFORMANCE: Disable glass effects on mobile */
+@media (max-width: 768px) {
+
+    .glass-container,
+    .glass-layer,
+    .glass-refraction,
+    .glass-reflection {
+        display: none !important;
+    }
+
+    .filter-btn.filter-text::before,
+    .filter-btn.filter-text::after {
+        display: none !important;
+    }
+
+    /* Simpler background for buttons on mobile */
+    .filter-btn.filter-text {
+        background: rgba(33, 38, 48, 0.95) !important;
+        border: 1px solid rgba(255, 255, 255, 0.15) !important;
+    }
+}

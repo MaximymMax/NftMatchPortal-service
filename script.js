@@ -650,17 +650,26 @@ async function fetchDeals(isLoadMore = false) {
     }
 }
 
-// --- INFINITE SCROLL HANDLER ---
+// --- INFINITE SCROLL HANDLER WITH THROTTLING ---
+let scrollThrottleTimer = null;
+
 function setupInfiniteScroll() {
     window.addEventListener('scroll', () => {
-        // Check if we're near the bottom of the page
-        if ((window.innerHeight + window.scrollY) >= document.body.offsetHeight - 800) {
-            if (!isLoading && hasMore) {
-                filterState.page++;
-                fetchDeals(true);
+        // Throttle scroll events to improve performance (max once per 100ms)
+        if (scrollThrottleTimer) return;
+
+        scrollThrottleTimer = setTimeout(() => {
+            scrollThrottleTimer = null;
+
+            // Check if we're near the bottom of the page
+            if ((window.innerHeight + window.scrollY) >= document.body.offsetHeight - 800) {
+                if (!isLoading && hasMore) {
+                    filterState.page++;
+                    fetchDeals(true);
+                }
             }
-        }
-    });
+        }, 100);
+    }, { passive: true }); // passive listener for better scroll performance
 }
 
 
