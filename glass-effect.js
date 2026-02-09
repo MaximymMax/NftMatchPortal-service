@@ -8,6 +8,12 @@ class LiquidGlassEffect {
      * Initialize glass effect on all filter buttons
      */
     init() {
+        // Optimization: Disable expensive glass effect layers on mobile/small screens
+        if (window.innerWidth < 768 || /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
+            console.log('Mobile device detected: Glass effect disabled for performance');
+            return;
+        }
+
         const filterButtons = document.querySelectorAll('.filter-btn.filter-text');
 
         filterButtons.forEach(button => {

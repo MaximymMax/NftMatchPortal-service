@@ -37,8 +37,8 @@ body {
     padding: 0 15px;
     background: transparent;
     pointer-events: none;
-    /* Add safe area for Telegram WebApp header buttons + 30px extra */
-    padding-top: calc(env(safe-area-inset-top, 0px) + 30px);
+    /* Add safe area for Telegram WebApp header buttons + 60px extra */
+    padding-top: calc(env(safe-area-inset-top, 0px) + 60px);
 }
 
 .fixed-ui::before {
@@ -373,8 +373,8 @@ body {
 /* Content Grid */
 .content-wrapper {
     padding: 0 15px;
-    /* Increased top padding +30px to account for header changes */
-    padding-top: 310px;
+    /* Increased top padding +60px base to account for header changes */
+    padding-top: 340px;
 }
 
 .nft-grid {
