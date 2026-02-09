@@ -37,8 +37,8 @@ body {
     padding: 0 15px;
     background: transparent;
     pointer-events: none;
-    /* Add safe area for Telegram WebApp header buttons */
-    padding-top: env(safe-area-inset-top, 0px);
+    /* Add safe area for Telegram WebApp header buttons + 30px extra */
+    padding-top: calc(env(safe-area-inset-top, 0px) + 30px);
 }
 
 .fixed-ui::before {
@@ -48,9 +48,12 @@ body {
     left: 0;
     width: 100%;
     height: 105%;
+    /* Simplified gradient for performance */
     background: linear-gradient(180deg, #000 0%, rgba(0, 0, 0, 0.98) 70%, rgba(0, 0, 0, 0) 100%);
     z-index: -1;
     pointer-events: none;
+    /* Hardware acceleration hack */
+    transform: translateZ(0);
 }
 
 .header,
@@ -65,7 +68,7 @@ body {
     justify-content: space-between;
     /* Чтобы разнести лого и дату */
     /* Add extra padding on mobile for Telegram header */
-    padding-top: max(20px, env(safe-area-inset-top, 0px) + 10px);
+    padding-top: 10px;
     padding-bottom: 15px;
 }
 
@@ -151,13 +154,20 @@ body {
 }
 
 .stat-card {
-    background: rgba(33, 38, 48, 0.6);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
+    background: rgba(33, 38, 48, 0.85);
+    /* Reduced transparency for better performance fallback */
     border: 1px solid rgba(255, 255, 255, 0.12);
     box-shadow: 0 4px 24px -1px rgba(0, 0, 0, 0.2);
     border-radius: 20px;
     padding: 12px 16px;
+}
+
+@supports (backdrop-filter: blur(20px)) {
+    .stat-card {
+        background: rgba(33, 38, 48, 0.6);
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+    }
 }
 
 .filters-row {
@@ -201,9 +211,8 @@ body {
     height: 44px;
     padding: 0 20px;
     border-radius: 50px;
-    background: rgba(255, 255, 255, 0.08);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
+    background: rgba(33, 38, 48, 0.9);
+    /* Fallback */
     border: 1px solid transparent;
     border-top-color: rgba(255, 255, 255, 0.4);
     border-bottom-color: rgba(255, 255, 255, 0.1);
@@ -215,7 +224,16 @@ body {
     white-space: nowrap;
     cursor: pointer;
     overflow: hidden;
-    transition: transform 0.1s, background 0.2s, box-shadow 0.2s;
+    transition: transform 0.1s;
+    /* Removed heavy properties from transition */
+}
+
+@supports (backdrop-filter: blur(12px)) {
+    .filter-btn {
+        background: rgba(255, 255, 255, 0.08);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+    }
 }
 
 .filter-btn::after {
@@ -355,7 +373,8 @@ body {
 /* Content Grid */
 .content-wrapper {
     padding: 0 15px;
-    padding-top: 280px;
+    /* Increased top padding +30px to account for header changes */
+    padding-top: 310px;
 }
 
 .nft-grid {
@@ -370,17 +389,36 @@ body {
     width: 100%;
     aspect-ratio: 2 / 1.2;
     position: relative;
-    background: rgba(33, 38, 48, 0.45);
+    background: rgba(33, 38, 48, 0.85);
+    /* Fallback */
     border-radius: 20px;
-    overflow: visible;
+    overflow: hidden;
+    /* Changed from visible to hidden for performance */
     border: 1px solid rgba(255, 255, 255, 0.1);
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
-    transition: all 0.3s ease;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+
+    /* Performance optimizations */
+    content-visibility: auto;
+    contain-intrinsic-size: 1px 200px;
+    /* Estimate height */
+    will-change: transform;
+    transform: translateZ(0);
+    /* Hardware acceleration */
+}
+
+@supports (backdrop-filter: blur(10px)) {
+
+    /* Only apply backdrop filter to cards if device isn't low-end/old (rough heuristic) */
+    /* On many mobile devices, this is KILLER. We will try to keep it but maybe remove it for .card-footer */
+    .nft-card {
+        background: rgba(33, 38, 48, 0.45);
+        /* backdrop-filter: blur(20px); - Removed from card root to improve scroll perf */
+    }
 }
 
 .nft-card.unique {
     border: 2px solid #4da6ff;
-    box-shadow: 0 0 20px rgba(77, 166, 255, 0.4), 0 4px 15px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 0 15px rgba(77, 166, 255, 0.3), 0 4px 10px rgba(0, 0, 0, 0.2);
 }
 
 .card-inner {
@@ -421,6 +459,7 @@ body {
     height: 85%;
     object-fit: contain;
     filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.4));
+    will-change: transform;
 }
 
 .card-percentage {
@@ -440,9 +479,8 @@ body {
     bottom: 0;
     width: 100%;
     height: 28%;
-    background: rgba(20, 24, 33, 0.85);
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
+    background: rgba(20, 24, 33, 0.95);
+    /* Opaque background is faster */
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -450,6 +488,9 @@ body {
     border-top: 1px solid rgba(255, 255, 255, 0.08);
     z-index: 4;
 }
+
+/* Only enable blur on card footer if really needed, but it's expensive */
+/* .card-footer { backdrop-filter: blur(8px); } - Commented out for perf */
 
 .card-price {
     font-size: 16px;
@@ -464,10 +505,8 @@ body {
     position: absolute;
     top: -12px;
     right: 8px;
-    /* Changed from left: 50% and translateX(-50%) to right positioning */
-    background: rgba(30, 35, 45, 0.95);
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
+    background: rgba(30, 35, 45, 0.98);
+    /* backdrop-filter: blur(10px); - Removed for perf */
     padding: 4px 12px;
     border-radius: 12px;
     border: 1px solid rgba(255, 255, 255, 0.15);
@@ -478,9 +517,7 @@ body {
     letter-spacing: 0.5px;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
     white-space: nowrap;
-    /* Width is now auto, based on content */
     width: auto;
-    /* Text aligned to the right */
     text-align: right;
 }
 
@@ -500,9 +537,11 @@ body {
     }
 
     .content-wrapper {
-        padding-top: 300px;
+        padding-top: 330px;
+        /* Adjusted for larger screens */
     }
 }
+
 
 @media (min-width: 768px) {
     .container {

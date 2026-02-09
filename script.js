@@ -442,7 +442,7 @@ function createNFTCard(apiItem) {
         <div class="card-inner">
             <div class="card-background"></div>
             <div class="card-image-wrapper">
-                <img src="${apiItem.ModelPhoto}" alt="${apiItem.ModelName}" class="card-image">
+                <img src="${apiItem.ModelPhoto}" alt="${apiItem.ModelName}" class="card-image" loading="lazy" decoding="async">
             </div>
             <div class="card-percentage">${percentage}</div>
             <div class="card-footer">
@@ -474,14 +474,19 @@ function renderDeals(responseData) {
         // Filter out items with Count === 0
         const validDeals = deals.filter(item => item.Count > 0);
 
+        // Use DocumentFragment for batch insertion to improve performance
+        const fragment = document.createDocumentFragment();
+
         // Update "Last Updated" based on the most recent deal in this batch
         let maxTime = 0;
         validDeals.forEach(item => {
             const t = new Date(item.UpdatedAt).getTime();
             if (t > maxTime) maxTime = t;
             const card = createNFTCard(item);
-            grid.appendChild(card);
+            fragment.appendChild(card);
         });
+
+        grid.appendChild(fragment);
 
         if (maxTime > 0) {
             const timeFromDeals = formatTime(new Date(maxTime));
