@@ -1121,11 +1121,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     initModals();
 
-    // Initialize liquid glass effect
-    if (window.LiquidGlassEffect) {
-        const glassEffect = new LiquidGlassEffect();
-        glassEffect.init();
-    }
+
 
     // Clean up old cache entries on page load
     CacheManager.clearOldEntries();
