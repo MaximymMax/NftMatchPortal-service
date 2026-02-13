@@ -38,7 +38,7 @@ body {
     padding: 0 15px;
     background: transparent;
     pointer-events: none;
-    padding-top: calc(env(safe-area-inset-top, 0px) + 100px);
+    padding-top: calc(env(safe-area-inset-top, 0px) + 80px);
     /* Выносим в отдельный слой для GPU */
     will-change: transform;
     transform: translateZ(0);
@@ -214,8 +214,8 @@ body {
     border-radius: 50px;
     /* Glass Effect */
     background: rgba(33, 38, 48, 0.5);
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
     border: 1px solid rgba(255, 255, 255, 0.15);
     font-size: 15px;
     color: #fff;
