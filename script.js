@@ -824,11 +824,17 @@ function initModals() {
     const collectionsModal = document.getElementById('collectionsModal');
     const itemModal = document.getElementById('itemModal');
     const infoModal = document.getElementById('infoModal');
+    const helpModalMonochrome = document.getElementById('helpModalMonochrome');
+    const helpModalMarkup = document.getElementById('helpModalMarkup');
 
     const btnFilterSettings = document.getElementById('btnFilterSettings');
     const btnBackgrounds = document.getElementById('btnBackgrounds');
     const btnCollections = document.getElementById('btnCollections');
     const btnShowInfo = document.getElementById('btnShowInfo');
+
+    // Help Buttons
+    const helpMonochrome = document.getElementById('helpMonochrome');
+    const helpMarkup = document.getElementById('helpMarkup');
 
     // Close buttons
     const closeSettings = document.getElementById('closeSettings');
@@ -836,6 +842,8 @@ function initModals() {
     const closeCollections = document.getElementById('closeCollections');
     const closeItem = document.getElementById('closeItem');
     const closeInfo = document.getElementById('closeInfo');
+    const closeHelpMonochrome = document.getElementById('closeHelpMonochrome');
+    const closeHelpMarkup = document.getElementById('closeHelpMarkup');
 
     // Apply buttons
     const applySettingsBtn = document.getElementById('applySettings');
@@ -870,81 +878,84 @@ function initModals() {
     }
 
     function openModal(modal) {
+        if (!modal) return;
         overlay.classList.add('active');
         modal.classList.add('active');
         document.body.style.overflow = 'hidden';
     }
 
     function closeModal() {
-        overlay.classList.remove('active');
-        settingsModal.classList.remove('active');
-        colorsModal.classList.remove('active');
-        collectionsModal.classList.remove('active');
-        itemModal.classList.remove('active');
-        infoModal.classList.remove('active');
+        if (overlay) overlay.classList.remove('active');
+        if (settingsModal) settingsModal.classList.remove('active');
+        if (colorsModal) colorsModal.classList.remove('active');
+        if (collectionsModal) collectionsModal.classList.remove('active');
+        if (itemModal) itemModal.classList.remove('active');
+        if (infoModal) infoModal.classList.remove('active');
+        if (helpModalMonochrome) helpModalMonochrome.classList.remove('active');
+        if (helpModalMarkup) helpModalMarkup.classList.remove('active');
         document.body.style.overflow = '';
     }
 
     // --- Events ---
 
     // Info
-    btnShowInfo.addEventListener('click', () => openModal(infoModal));
+    if (btnShowInfo) btnShowInfo.addEventListener('click', () => openModal(infoModal));
+
+    // Help
+    if (helpMonochrome) helpMonochrome.addEventListener('click', () => openModal(helpModalMonochrome));
+    if (helpMarkup) helpMarkup.addEventListener('click', () => openModal(helpModalMarkup));
 
     // Settings
-    btnFilterSettings.addEventListener('click', () => {
-        document.getElementById('filterMinPrice').value = filterState.minPrice || '';
-        document.getElementById('filterMaxPrice').value = filterState.maxPrice || '';
-        document.querySelector(`input[name="sortBy"][value="${filterState.sortBy}"]`).checked = true;
-        document.querySelector(`input[name="sortOrder"][value="${filterState.sortOrder}"]`).checked = true;
-        document.getElementById('filterOnlyUnique').checked = filterState.onlyUnique;
+    if (btnFilterSettings) {
+        btnFilterSettings.addEventListener('click', () => {
+            document.getElementById('filterMinPrice').value = filterState.minPrice || '';
+            document.getElementById('filterMaxPrice').value = filterState.maxPrice || '';
 
-        // Update disabled state of sort options based on filter state
-        updateSortOptionsState();
+            const sortByRadio = document.querySelector(`input[name="sortBy"][value="${filterState.sortBy}"]`);
+            if (sortByRadio) sortByRadio.checked = true;
 
-        openModal(settingsModal);
-    });
+            const sortOrderRadio = document.querySelector(`input[name="sortOrder"][value="${filterState.sortOrder}"]`);
+            if (sortOrderRadio) sortOrderRadio.checked = true;
 
-    applySettingsBtn.addEventListener('click', () => {
-        const minP = parseFloat(document.getElementById('filterMinPrice').value);
-        const maxP = parseFloat(document.getElementById('filterMaxPrice').value);
-        filterState.minPrice = isNaN(minP) ? null : minP;
-        filterState.maxPrice = isNaN(maxP) ? null : maxP;
+            document.getElementById('filterOnlyUnique').checked = filterState.onlyUnique;
 
-        // Get selected sort option, but validate it's not disabled
-        const selectedSortBy = document.querySelector('input[name="sortBy"]:checked');
-        if (selectedSortBy && !selectedSortBy.disabled) {
-            filterState.sortBy = selectedSortBy.value;
-        }
+            // Update disabled state of sort options based on filter state
+            updateSortOptionsState();
 
-        filterState.sortOrder = document.querySelector('input[name="sortOrder"]:checked').value;
-        filterState.onlyUnique = document.getElementById('filterOnlyUnique').checked;
-        filterState.page = 1;
+            openModal(settingsModal);
+        });
+    }
 
-        // Sync inline checkboxes (inverted logic)
-        const ignoreMonoInline = document.getElementById('ignoreMonochromeInline');
-        const ignoreMarkupInline = document.getElementById('ignoreMarkupInline');
-        const progressCard = document.querySelector('.progress-card');
-        const limitCard = document.querySelector('.limit-card');
+    if (applySettingsBtn) {
+        applySettingsBtn.addEventListener('click', () => {
+            const minP = parseFloat(document.getElementById('filterMinPrice').value);
+            const maxP = parseFloat(document.getElementById('filterMaxPrice').value);
+            filterState.minPrice = isNaN(minP) ? null : minP;
+            filterState.maxPrice = isNaN(maxP) ? null : maxP;
 
-        if (ignoreMonoInline) {
-            ignoreMonoInline.checked = !filterState.ignoreMonochrome; // Inverted
-            if (progressCard) progressCard.classList.toggle('inactive', filterState.ignoreMonochrome);
-        }
-        if (ignoreMarkupInline) {
-            ignoreMarkupInline.checked = !filterState.ignoreMarkup; // Inverted
-            if (limitCard) limitCard.classList.toggle('inactive', filterState.ignoreMarkup);
-        }
+            // Get selected sort option, but validate it's not disabled
+            const selectedSortBy = document.querySelector('input[name="sortBy"]:checked');
+            if (selectedSortBy && !selectedSortBy.disabled) {
+                filterState.sortBy = selectedSortBy.value;
+            }
 
-        closeModal();
-        updateSearchButtonState(true);
-    });
+            filterState.sortOrder = document.querySelector('input[name="sortOrder"]:checked').value;
+            filterState.onlyUnique = document.getElementById('filterOnlyUnique').checked;
+            filterState.page = 1;
+
+            closeModal();
+            updateSearchButtonState(true);
+        });
+    }
 
     // Colors
-    btnBackgrounds.addEventListener('click', () => {
-        if (colorSearchInput) colorSearchInput.value = '';
-        renderList('colorsList', sortedColorDefinitions, filterState.selectedColors, 'color');
-        openModal(colorsModal);
-    });
+    if (btnBackgrounds) {
+        btnBackgrounds.addEventListener('click', () => {
+            if (colorSearchInput) colorSearchInput.value = '';
+            renderList('colorsList', sortedColorDefinitions, filterState.selectedColors, 'color');
+            openModal(colorsModal);
+        });
+    }
 
     if (colorSearchInput) {
         colorSearchInput.addEventListener('input', (e) => {
@@ -957,26 +968,27 @@ function initModals() {
         });
     }
 
-    btnSelectAllColors.addEventListener('click', () => handleSelectAll('color'));
+    if (btnSelectAllColors) btnSelectAllColors.addEventListener('click', () => handleSelectAll('color'));
 
-    applyColorsBtn.addEventListener('click', () => {
-        // Collect ALL selected from DOM (even hidden ones if we assume selection persists)
-        // Since we re-render on open, we just read from DOM
-        const selectedEls = document.querySelectorAll('#colorsList .color-option.selected');
-        filterState.selectedColors = Array.from(selectedEls).map(el => el.dataset.name);
-        filterState.page = 1;
-        closeModal();
-        updateSearchButtonState(true);
-    });
+    if (applyColorsBtn) {
+        applyColorsBtn.addEventListener('click', () => {
+            const selectedEls = document.querySelectorAll('#colorsList .color-option.selected');
+            filterState.selectedColors = Array.from(selectedEls).map(el => el.dataset.name);
+            filterState.page = 1;
+            closeModal();
+            updateSearchButtonState(true);
+        });
+    }
 
     // Collections
-    btnCollections.addEventListener('click', () => {
-        if (collectionSearchInput) collectionSearchInput.value = '';
-        // Prepare data array from map
-        const collectionItems = Object.entries(GIFT_NAME_TO_ID).map(([name, id]) => ({ name, id }));
-        renderList('collectionsList', collectionItems, filterState.selectedCollections, 'collection');
-        openModal(collectionsModal);
-    });
+    if (btnCollections) {
+        btnCollections.addEventListener('click', () => {
+            if (collectionSearchInput) collectionSearchInput.value = '';
+            const collectionItems = Object.entries(GIFT_NAME_TO_ID).map(([name, id]) => ({ name, id }));
+            renderList('collectionsList', collectionItems, filterState.selectedCollections, 'collection');
+            openModal(collectionsModal);
+        });
+    }
 
     if (collectionSearchInput) {
         collectionSearchInput.addEventListener('input', (e) => {
@@ -989,23 +1001,27 @@ function initModals() {
         });
     }
 
-    btnSelectAllCollections.addEventListener('click', () => handleSelectAll('collection'));
+    if (btnSelectAllCollections) btnSelectAllCollections.addEventListener('click', () => handleSelectAll('collection'));
 
-    applyCollectionsBtn.addEventListener('click', () => {
-        const selectedEls = document.querySelectorAll('#collectionsList .color-option.selected');
-        filterState.selectedCollections = Array.from(selectedEls).map(el => el.dataset.name);
-        filterState.page = 1;
-        closeModal();
-        updateSearchButtonState(true);
-    });
+    if (applyCollectionsBtn) {
+        applyCollectionsBtn.addEventListener('click', () => {
+            const selectedEls = document.querySelectorAll('#collectionsList .color-option.selected');
+            filterState.selectedCollections = Array.from(selectedEls).map(el => el.dataset.name);
+            filterState.page = 1;
+            closeModal();
+            updateSearchButtonState(true);
+        });
+    }
 
     // General Close
-    overlay.addEventListener('click', closeModal);
-    closeSettings.addEventListener('click', closeModal);
-    closeColors.addEventListener('click', closeModal);
-    closeCollections.addEventListener('click', closeModal);
-    closeItem.addEventListener('click', closeModal);
-    closeInfo.addEventListener('click', closeModal);
+    if (overlay) overlay.addEventListener('click', closeModal);
+    if (closeSettings) closeSettings.addEventListener('click', closeModal);
+    if (closeColors) closeColors.addEventListener('click', closeModal);
+    if (closeCollections) closeCollections.addEventListener('click', closeModal);
+    if (closeItem) closeItem.addEventListener('click', closeModal);
+    if (closeInfo) closeInfo.addEventListener('click', closeModal);
+    if (closeHelpMonochrome) closeHelpMonochrome.addEventListener('click', closeModal);
+    if (closeHelpMarkup) closeHelpMarkup.addEventListener('click', closeModal);
 }
 
 // Function to update sort options state based on filters
@@ -1076,36 +1092,29 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Inline checkboxes sync (inverted logic: checked = active, unchecked = ignore)
-    const ignoreMonoInline = document.getElementById('ignoreMonochromeInline');
-    const ignoreMarkupInline = document.getElementById('ignoreMarkupInline');
-    const progressCard = document.querySelector('.progress-card');
-    const limitCard = document.querySelector('.limit-card');
+    // Infinity Button Logic for Max Markup
+    const btnInfinity = document.getElementById('btnInfinityMarkup');
+    const markupInputContainer = document.querySelector('.limit-input-container');
 
-    if (ignoreMonoInline) {
-        ignoreMonoInline.addEventListener('change', (e) => {
-            filterState.ignoreMonochrome = !e.target.checked; // Inverted
-            if (progressCard) {
-                progressCard.classList.toggle('inactive', !e.target.checked);
-            }
-            // If monochrome is disabled and currently sorting by it, switch to price
-            if (filterState.ignoreMonochrome && filterState.sortBy === 'monochrome') {
-                filterState.sortBy = 'price';
-            }
-            updateSearchButtonState(true);
-        });
-    }
+    if (btnInfinity) {
+        btnInfinity.addEventListener('click', () => {
+            const isActive = btnInfinity.classList.toggle('active');
+            filterState.ignoreMarkup = isActive;
 
-    if (ignoreMarkupInline) {
-        ignoreMarkupInline.addEventListener('change', (e) => {
-            filterState.ignoreMarkup = !e.target.checked; // Inverted
-            if (limitCard) {
-                limitCard.classList.toggle('inactive', !e.target.checked);
-            }
             // If markup is disabled and currently sorting by it, switch to price
             if (filterState.ignoreMarkup && filterState.sortBy === 'markup') {
                 filterState.sortBy = 'price';
             }
+
+            if (markupInputContainer) {
+                markupInputContainer.classList.toggle('disabled', isActive);
+            }
+
+            // Update UI sort options disabled state
+            if (typeof updateSortOptionsState === 'function') {
+                updateSortOptionsState();
+            }
+
             updateSearchButtonState(true);
         });
     }
