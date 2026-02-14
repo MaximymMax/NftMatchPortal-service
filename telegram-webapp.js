@@ -72,12 +72,17 @@ const TelegramApp = {
      * Otherwise, use default API key
      */
     getApiKey() {
+        // Enable manual override from console
+        if (window.TelegramAuthToken) {
+            return window.TelegramAuthToken;
+        }
+
         if (this.isInTelegram && this.initData) {
             // Use Telegram initData as authentication
             return this.initData;
         } else {
-            // Use default API key
-            return "bAsmvky00QjWJAdfetXmKxpJDYi/U9txbI5N0QqJn5JIpX4iBIV+nV/J7s1AQuNGwtHRUDGcbHAxw8YjBzvKF55VHQYn9amxeLUSM8279is=";
+            console.warn("No API Key available.");
+            return "";
         }
     },
 

@@ -2,7 +2,7 @@
 const API_URL = "https://nftmatchbot20250730152328.azurewebsites.net/api/MarketsAnalis/BestDeals";
 const API_DEFAULTS_URL = "https://nftmatchbot20250730152328.azurewebsites.net/api/MarketsAnalis/Defaults";
 const API_LAST_UPDATE_URL = "https://nftmatchbot20250730152328.azurewebsites.net/api/MarketsAnalis/LastUpdate";
-const API_KEY = "bAsmvky00QjWJAdfetXmKxpJDYi/U9txbI5N0QqJn5JIpX4iBIV+nV/J7s1AQuNGwtHRUDGcbHAxw8YjBzvKF55VHQYn9amxeLUSM8279is=";
+// API Key handled by TelegramApp
 
 const GIFT_NAME_TO_ID = {
     "Santa Hat": "5983471780763796287",
@@ -393,7 +393,7 @@ async function fetchLastUpdateTime() {
         const response = await fetch(API_LAST_UPDATE_URL, {
             method: 'GET',
             headers: {
-                'Authorization': API_KEY
+                'Authorization': TelegramApp.getApiKey()
             }
         });
 
@@ -625,7 +625,7 @@ async function fetchDeals() {
         const fetchOptions = {
             method: method,
             headers: {
-                'Authorization': API_KEY
+                'Authorization': TelegramApp.getApiKey()
             }
         };
         if (method === 'POST') {
