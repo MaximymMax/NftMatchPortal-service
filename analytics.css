@@ -490,20 +490,30 @@
     margin: 0;
 }
 
-/* Loading State */
-.loading-state {
-    grid-column: 1 / -1;
-    text-align: center;
-    padding: 40px 20px;
-    font-size: 18px;
-    color: rgba(255, 255, 255, 0.7);
-}
+/* Mobile Optimization for Analytics */
+@media (max-width: 768px) {
 
-/* Empty State */
-.empty-state {
-    grid-column: 1 / -1;
-    text-align: center;
-    padding: 40px 20px;
-    font-size: 18px;
-    color: rgba(255, 255, 255, 0.5);
+    /* Keep glass effect on mono-score-card and search section as requested */
+    .analytics-card,
+    .sort-menu,
+    .item-card {
+        backdrop-filter: none !important;
+        -webkit-backdrop-filter: none !important;
+        box-shadow: none !important;
+    }
+
+    .analytics-card {
+        background: #212630 !important;
+        border-color: rgba(255, 255, 255, 0.1) !important;
+    }
+
+    .sort-menu {
+        background: #1c2028 !important;
+    }
+
+    /* Remove hover effects on mobile to prevent sticky states and lag */
+    .analytics-card:hover {
+        transform: none !important;
+        box-shadow: none !important;
+    }
 }

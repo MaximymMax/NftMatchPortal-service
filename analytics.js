@@ -166,6 +166,22 @@ function setCachedData(minScore, results) {
 
 // Fetch last update time from API
 async function fetchLastUpdateTime() {
+    const CACHE_KEY = 'last_update_time';
+
+    // Check cache first
+    try {
+        const cached = sessionStorage.getItem(CACHE_KEY);
+        if (cached) {
+            const data = JSON.parse(cached);
+            // Cache valid for 5 minutes for timestamp
+            if (Date.now() - data.timestamp < 5 * 60 * 1000) {
+                const timeEl = document.getElementById('lastUpdateTime');
+                if (timeEl) timeEl.textContent = data.value;
+                return;
+            }
+        }
+    } catch (e) { console.error(e); }
+
     try {
         const response = await fetch(API_LAST_UPDATE_URL, {
             method: 'GET',
@@ -183,6 +199,12 @@ async function fetchLastUpdateTime() {
             const formattedTime = formatTime(data.LastUpdate);
             const timeEl = document.getElementById('lastUpdateTime');
             if (timeEl) timeEl.textContent = formattedTime;
+
+            // Set cache
+            sessionStorage.setItem(CACHE_KEY, JSON.stringify({
+                timestamp: Date.now(),
+                value: formattedTime
+            }));
         }
     } catch (error) {
         console.error('Error fetching last update time:', error);
