@@ -1,5 +1,6 @@
 // --- CONFIG & DATA ---
 const API_URL = "https://nftmatchbot20250730152328.azurewebsites.net/api/MarketsAnalis/BestDeals";
+const API_DEFAULTS_URL = "https://nftmatchbot20250730152328.azurewebsites.net/api/MarketsAnalis/Defaults";
 const API_LAST_UPDATE_URL = "https://nftmatchbot20250730152328.azurewebsites.net/api/MarketsAnalis/LastUpdate";
 const API_KEY = "bAsmvky00QjWJAdfetXmKxpJDYi/U9txbI5N0QqJn5JIpX4iBIV+nV/J7s1AQuNGwtHRUDGcbHAxw8YjBzvKF55VHQYn9amxeLUSM8279is=";
 
@@ -549,22 +550,43 @@ async function fetchDeals() {
         const rangeInput = document.getElementById('percentageRange');
         const markupInput = document.getElementById('markupInput');
 
-        const minCoof = filterState.ignoreMonochrome ? null : (rangeInput ? (parseFloat(rangeInput.value) / 100) : 0.8);
-        let maxMarkup = filterState.ignoreMarkup ? null : (markupInput && markupInput.value ? parseFloat(markupInput.value) : 30);
+        // Check for Default Mode Criteria
+        // MinCoof >= 0.8 (default is 0.8 / 90% in UI)
+        // MaxMarkup <= 30 (default is 30)
+        // No backgrounds, No collections
+        // SortBy monochrome
+        // Page <= 3
+        const currentMinCoof = filterState.ignoreMonochrome ? 0 : (rangeInput ? (parseFloat(rangeInput.value) / 100) : 0.8);
+        const currentMaxMarkup = filterState.ignoreMarkup ? 1000 : (markupInput && markupInput.value ? parseFloat(markupInput.value) : 30);
+
+        let isDefaultMode = true;
+
+        if (filterState.selectedColors.length > 0) isDefaultMode = false;
+        if (filterState.selectedCollections.length > 0) isDefaultMode = false;
+        if (filterState.sortBy !== 'monochrome' && filterState.sortBy !== 'coof') isDefaultMode = false;
+        // Instruction says MinCoof 80 or higher.
+        if (currentMinCoof < 0.8) isDefaultMode = false;
+        // Instruction says MaxMarkup 30 or lower.
+        if (currentMaxMarkup > 30) isDefaultMode = false;
+        // Page limit for defaults
+        if (filterState.page > 3) isDefaultMode = false;
+
+        // If ignoring monochrome check entirely, it's custom unless user sets range manually high? 
+        // Logic: if ignoreMonochrome is true, currentMinCoof is 0 -> Custom. Correct.
+        // If ignoreMarkup is true, currentMaxMarkup is 1000 -> Custom. Correct.
+
+        let url = API_URL;
+        let method = 'POST';
+        let body = null;
 
         const requestMaxPrice = filterState.maxPrice !== null ? filterState.maxPrice : 100000;
-
-        // Map frontend sortBy values to API parameter names
-        let apiSortBy = filterState.sortBy;
-        if (filterState.sortBy === 'monochrome') {
-            apiSortBy = 'coof';
-        }
+        let apiSortBy = filterState.sortBy === 'monochrome' ? 'coof' : filterState.sortBy;
 
         const payload = {
-            "MinCoof": minCoof,
+            "MinCoof": currentMinCoof,
             "MinPrice": filterState.minPrice,
             "MaxPrice": requestMaxPrice,
-            "MaxMarkupPercent": maxMarkup,
+            "MaxMarkupPercent": currentMaxMarkup,
             "Limit": filterState.limit,
             "Page": filterState.page,
             "SortBy": apiSortBy,
@@ -572,13 +594,24 @@ async function fetchDeals() {
             "BackgroundNames": filterState.selectedColors.length > 0 ? filterState.selectedColors : null,
             "CollectionNames": filterState.selectedCollections.length > 0 ? filterState.selectedCollections : null
         };
+        if (filterState.onlyUnique) payload.OnlySingle = true;
 
-        // Add OnlySingle only if true
-        if (filterState.onlyUnique) {
-            payload.OnlySingle = true;
+        if (isDefaultMode) {
+            // Use Defaults Endpoint
+            // Assuming GET for defaults with page/limit query params
+            url = `${API_DEFAULTS_URL}?page=${filterState.page}&limit=${filterState.limit}`;
+            method = 'GET';
+        } else {
+            // Use BesDeals Endpoint (Custom/Private)
+            url = API_URL;
+            method = 'POST';
+            body = JSON.stringify(payload);
         }
 
-        // Check cache first
+        // Check cache (using payload as key is still valid for bestdeals, for defaults we can key by page)
+        // To simplify, let's keep getDealsCacheKey using payload for consistency, 
+        // or just rely on API response caching if needed.
+        // Let's use payload cache key for both, as payload represents the state.
         const cached = getCachedDeals(payload);
         if (cached) {
             console.log('Using cached deals data');
@@ -589,14 +622,25 @@ async function fetchDeals() {
             return;
         }
 
-        const response = await fetch(API_URL, {
-            method: 'POST',
+        const fetchOptions = {
+            method: method,
             headers: {
-                'Content-Type': 'application/json',
                 'Authorization': API_KEY
-            },
-            body: JSON.stringify(payload)
-        });
+            }
+        };
+        if (method === 'POST') {
+            fetchOptions.headers['Content-Type'] = 'application/json';
+            fetchOptions.body = body;
+        }
+
+        const response = await fetch(url, fetchOptions);
+
+        if (response.status === 403) {
+            // Access Denied - Show Modal
+            const accessModal = document.getElementById('accessModal');
+            if (accessModal) openModal(accessModal);
+            throw new Error("Access Denied: Custom filters require whitelist.");
+        }
 
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
@@ -612,8 +656,15 @@ async function fetchDeals() {
 
     } catch (error) {
         console.error('Fetch error:', error);
-        if (grid) {
-            grid.innerHTML = '<div style="grid-column: 1/-1; text-align: center; padding: 20px; color: #ff6b6b;">Error loading deals</div>';
+        // Only clear grid if it's NOT an access denied error (which shows modal)
+        if (error.message.includes("Access Denied")) {
+            // Keep grid as is or clear? Maybe clear to show we couldn't fetch.
+            // But existing content might be better than blank.
+            // Let's keep it.
+        } else {
+            if (grid) {
+                grid.innerHTML = '<div style="grid-column: 1/-1; text-align: center; padding: 20px; color: #ff6b6b;">Error loading deals</div>';
+            }
         }
     } finally {
         if (grid) grid.style.opacity = '1';
@@ -675,6 +726,7 @@ function updatePaginationControls() {
 }
 
 function goToPreviousPage() {
+    if (isLoading) return;
     if (filterState.page > 1) {
         filterState.page--;
         fetchDeals();
@@ -682,6 +734,7 @@ function goToPreviousPage() {
 }
 
 function goToNextPage() {
+    if (isLoading) return;
     if (filterState.page < totalPages) {
         filterState.page++;
         fetchDeals();
@@ -824,6 +877,7 @@ function initModals() {
     const collectionsModal = document.getElementById('collectionsModal');
     const itemModal = document.getElementById('itemModal');
     const infoModal = document.getElementById('infoModal');
+    const accessModal = document.getElementById('accessModal');
     const helpModalMonochrome = document.getElementById('helpModalMonochrome');
     const helpModalMarkup = document.getElementById('helpModalMarkup');
 
@@ -842,6 +896,7 @@ function initModals() {
     const closeCollections = document.getElementById('closeCollections');
     const closeItem = document.getElementById('closeItem');
     const closeInfo = document.getElementById('closeInfo');
+    const closeAccess = document.getElementById('closeAccess');
     const closeHelpMonochrome = document.getElementById('closeHelpMonochrome');
     const closeHelpMarkup = document.getElementById('closeHelpMarkup');
 
@@ -859,23 +914,8 @@ function initModals() {
     const collectionSearchInput = document.getElementById('collectionSearchInput');
 
     // Pagination
-    const prevPageBtn = document.getElementById('prevPage');
-    const nextPageBtn = document.getElementById('nextPage');
-
-    if (prevPageBtn) {
-        prevPageBtn.addEventListener('click', () => {
-            if (filterState.page > 1) {
-                filterState.page--;
-                fetchDeals();
-            }
-        });
-    }
-    if (nextPageBtn) {
-        nextPageBtn.addEventListener('click', () => {
-            filterState.page++;
-            fetchDeals();
-        });
-    }
+    // Note: Pagination handlers are attached in DOMContentLoaded using goToPreviousPage/goToNextPage
+    // to avoid duplicate event listeners and ensure isLoading checks are respected.
 
     function openModal(modal) {
         if (!modal) return;
@@ -891,6 +931,7 @@ function initModals() {
         if (collectionsModal) collectionsModal.classList.remove('active');
         if (itemModal) itemModal.classList.remove('active');
         if (infoModal) infoModal.classList.remove('active');
+        if (accessModal) accessModal.classList.remove('active');
         if (helpModalMonochrome) helpModalMonochrome.classList.remove('active');
         if (helpModalMarkup) helpModalMarkup.classList.remove('active');
         document.body.style.overflow = '';
@@ -1020,6 +1061,7 @@ function initModals() {
     if (closeCollections) closeCollections.addEventListener('click', closeModal);
     if (closeItem) closeItem.addEventListener('click', closeModal);
     if (closeInfo) closeInfo.addEventListener('click', closeModal);
+    if (closeAccess) closeAccess.addEventListener('click', closeModal);
     if (closeHelpMonochrome) closeHelpMonochrome.addEventListener('click', closeModal);
     if (closeHelpMarkup) closeHelpMarkup.addEventListener('click', closeModal);
 }
