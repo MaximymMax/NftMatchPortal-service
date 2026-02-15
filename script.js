@@ -388,6 +388,7 @@ function showLoadingOverlay() {
     // Показываем loading только если поиск длится больше 1 секунды
     loadingTimeout = setTimeout(() => {
         const overlay = document.getElementById('loadingOverlay');
+        const grid = document.getElementById('nftGrid');
         console.log('Loading timeout triggered, overlay:', overlay, 'isLoading:', isLoading);
         if (overlay && isLoading) {
             // Инициализируем Lottie, если еще не было
@@ -397,6 +398,8 @@ function showLoadingOverlay() {
             }
             console.log('Adding active class to loading overlay');
             overlay.classList.add('active');
+            // Скрываем grid когда показываем loading
+            if (grid) grid.style.display = 'none';
         }
     }, 1000); // 1 секунда - loading показывается только для долгих запросов
 }
@@ -409,9 +412,12 @@ function hideLoadingOverlay() {
     }
 
     const overlay = document.getElementById('loadingOverlay');
+    const grid = document.getElementById('nftGrid');
     if (overlay) {
         overlay.classList.remove('active');
     }
+    // Показываем grid обратно
+    if (grid) grid.style.display = 'grid';
 }
 
 function cancelLoading() {
@@ -632,10 +638,6 @@ async function fetchDeals(newQuery = null) {
 
     isLoading = true;
     const grid = document.getElementById('nftGrid');
-
-    if (grid) {
-        grid.style.opacity = '0.5';
-    }
 
     // Создаем новый AbortController для этого запроса
     abortController = new AbortController();

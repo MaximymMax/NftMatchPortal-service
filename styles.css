@@ -376,6 +376,7 @@ body {
 
 /* Content Grid */
 .content-wrapper {
+    position: relative;
     padding: 0 15px;
     padding-top: 340px;
     min-height: 400px;
@@ -1210,5 +1211,6 @@ body {
 .limit-input-container.disabled {
     opacity: 0.3;
     pointer-events: none;
-} 
+}
+ 
  

@@ -1,26 +1,22 @@
 /* Loading Overlay с Lottie анимацией */
-/* Фиксированная позиция - не прокручивается, всегда сверху с отступом */
+/* Показывается вместо контента, не поверх */
 .loading-overlay {
-    position: fixed;
+    position: absolute;
     top: 340px;
-    /* Отступ сверху (под header и stats) */
-    left: 50%;
-    transform: translateX(-50%);
-    width: calc(100% - 30px);
-    /* Учитываем padding content-wrapper */
-    max-width: 600px;
-    /* Ограничение ширины для больших экранов */
-    min-height: 400px;
-    background: rgba(0, 0, 0, 0.95);
-    z-index: 100;
+    /* Отступ под header */
+    left: 0;
+    width: 100%;
+    height: calc(100% - 340px);
+    /* Занимаем оставшуюся высоту */
+    min-height: 500px;
+    background: rgba(0, 0, 0, 0.98);
+    z-index: 10;
     display: flex;
     align-items: center;
     justify-content: center;
     opacity: 0;
     pointer-events: none;
     transition: opacity 0.3s ease;
-    border-radius: 16px;
-    /* Закругление для красоты */
 }
 
 .loading-overlay.active {
@@ -90,11 +86,12 @@
 
 @media (max-width: 480px) {
     .loading-overlay {
-        top: 280px;
-        /* Меньший отступ на мобильных */
-        width: calc(100% - 20px);
-        /* Меньше padding */
+        top: 340px;
+        /* Совпадает с desktop */
+        width: 100%;
+        /* На всю ширину */
         min-height: 300px;
+        height: auto;
     }
 
     .lottie-container {
