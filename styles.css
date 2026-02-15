@@ -376,8 +376,6 @@ body {
 
 /* Content Grid */
 .content-wrapper {
-    position: relative;
-    /* Для позиционирования loading overlay */
     padding: 0 15px;
     padding-top: 340px;
     min-height: 400px;
