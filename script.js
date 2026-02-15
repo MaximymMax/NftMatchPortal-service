@@ -384,19 +384,19 @@ function initLottieAnimation() {
 }
 
 function showLoadingOverlay() {
-    console.log('showLoadingOverlay called, isLoading:', isLoading);
+    // console.log('showLoadingOverlay called, isLoading:', isLoading);
     // Показываем loading только если поиск длится больше 1 секунды
     loadingTimeout = setTimeout(() => {
         const overlay = document.getElementById('loadingOverlay');
         const grid = document.getElementById('nftGrid');
-        console.log('Loading timeout triggered, overlay:', overlay, 'isLoading:', isLoading);
+        // console.log('Loading timeout triggered, overlay:', overlay, 'isLoading:', isLoading);
         if (overlay && isLoading) {
             // Инициализируем Lottie, если еще не было
             if (!lottieAnimation) {
-                console.log('Initializing Lottie animation');
+                // console.log('Initializing Lottie animation');
                 initLottieAnimation();
             }
-            console.log('Adding active class to loading overlay');
+            // console.log('Adding active class to loading overlay');
             overlay.classList.add('active');
             // Скрываем grid когда показываем loading
             if (grid) grid.style.display = 'none';
@@ -704,7 +704,7 @@ async function fetchDeals(newQuery = null) {
         // Let's use payload cache key for both, as payload represents the state.
         const cached = getCachedDeals(payload);
         if (cached) {
-            console.log('Using cached deals data');
+            // console.log('Using cached deals data');
 
             // Update activeQuery only if this was a new search (newQuery provided)
             if (newQuery) {
@@ -769,7 +769,7 @@ async function fetchDeals(newQuery = null) {
 
         // Если запрос был отменен пользователем - не показываем ошибку
         if (error.name === 'AbortError') {
-            console.log('Request cancelled by user');
+            // console.log('Request cancelled by user');
             return false;
         }
 

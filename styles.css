@@ -705,7 +705,7 @@ body {
     width: 20px;
     height: 20px;
     cursor: pointer;
-    accent-color: #fff;
+    accent-color: #0098ea;
 }
 
 .checkbox-label {
@@ -726,7 +726,7 @@ body {
     width: 16px;
     height: 16px;
     cursor: pointer;
-    accent-color: #fff;
+    accent-color: #0098ea;
 }
 
 .inline-checkbox-label {
@@ -1212,5 +1212,5 @@ body {
     opacity: 0.3;
     pointer-events: none;
 }
- 
- 
+
+   
