@@ -224,8 +224,6 @@ const sortedColorDefinitions = [...colorDefinitions].sort((a, b) => {
 
 // --- STATE MANAGEMENT ---
 let filterState = {
-    page: 1,
-    limit: 50, // Cards per page
     minPrice: null,
     maxPrice: null,
     sortBy: 'monochrome',
@@ -237,11 +235,34 @@ let filterState = {
     ignoreMarkup: false
 };
 
+// --- ACTIVE QUERY (APPLIED FILTERS) ---
+let activeQuery = {
+    page: 1,
+    limit: 50,
+    minCoof: 0.8,
+    maxMarkup: 30,
+    minPrice: null,
+    maxPrice: null,
+    sortBy: 'monochrome',
+    sortOrder: 'desc',
+    selectedColors: [],
+    selectedCollections: [],
+    onlyUnique: false,
+    ignoreMonochrome: false,
+    ignoreMarkup: false,
+    isDefaultMode: true // Track if query uses default conditions
+};
+
 let isLoading = false;
 let totalPages = 1;
 let currentPageData = []; // Store current page cards for lazy rendering
 let renderedCardsCount = 0; // How many cards we've rendered so far
 const CARDS_PER_BATCH = 10; // Render 10 cards at a time when scrolling
+
+// Loading overlay управление
+let loadingTimeout = null; // Таймер для задержки показа loading
+let lottieAnimation = null; // Lottie instance
+let abortController = null; // Для отмены запроса
 
 // --- UNIVERSAL CACHING UTILITY ---
 const CacheManager = {
@@ -344,7 +365,70 @@ const CacheManager = {
             console.error('Cache remove error:', e);
         }
     }
-};
+}
+
+// --- LOADING OVERLAY FUNCTIONS ---
+function initLottieAnimation() {
+    if (!lottieAnimation && window.lottie) {
+        const container = document.getElementById('lottieContainer');
+        if (container) {
+            lottieAnimation = lottie.loadAnimation({
+                container: container,
+                renderer: 'svg',
+                loop: true,
+                autoplay: true,
+                path: 'https://cdn.changes.tg/gifts/models/Spring%20Basket/lottie/Knitty%20Kitty.json'
+            });
+        }
+    }
+}
+
+function showLoadingOverlay() {
+    console.log('showLoadingOverlay called, isLoading:', isLoading);
+    // Показываем loading только если поиск длится больше 1 секунды
+    loadingTimeout = setTimeout(() => {
+        const overlay = document.getElementById('loadingOverlay');
+        console.log('Loading timeout triggered, overlay:', overlay, 'isLoading:', isLoading);
+        if (overlay && isLoading) {
+            // Инициализируем Lottie, если еще не было
+            if (!lottieAnimation) {
+                console.log('Initializing Lottie animation');
+                initLottieAnimation();
+            }
+            console.log('Adding active class to loading overlay');
+            overlay.classList.add('active');
+        }
+    }, 1000); // 1 секунда - loading показывается только для долгих запросов
+}
+
+function hideLoadingOverlay() {
+    // Отменяем таймер показа, если запрос завершился быстро
+    if (loadingTimeout) {
+        clearTimeout(loadingTimeout);
+        loadingTimeout = null;
+    }
+
+    const overlay = document.getElementById('loadingOverlay');
+    if (overlay) {
+        overlay.classList.remove('active');
+    }
+}
+
+function cancelLoading() {
+    // Отменяем текущий запрос
+    if (abortController) {
+        abortController.abort();
+        abortController = null;
+    }
+
+    hideLoadingOverlay();
+    isLoading = false;
+
+    const grid = document.getElementById('nftGrid');
+    if (grid) {
+        grid.style.opacity = '1';
+    }
+}
 
 // --- UTILS ---
 function getColorByName(name) {
@@ -439,6 +523,10 @@ function createNFTCard(apiItem) {
     card.style.setProperty('--card-light', colors.edgeColor);
     card.style.setProperty('--card-edge', colors.edgeColor);
 
+    // Use white shadow for dark backgrounds (Black and Onyx Black)
+    const isDarkBackground = apiItem.BackgroundName === 'Black' || apiItem.BackgroundName === 'Onyx Black';
+    const percentageShadow = isDarkBackground ? '0 2px 8px rgba(255, 255, 255, 0.8)' : '0 2px 4px rgba(0, 0, 0, 0.5)';
+
     card.onclick = () => {
         openItemDetails(apiItem);
     };
@@ -451,7 +539,7 @@ function createNFTCard(apiItem) {
             <div class="card-image-wrapper">
                 <img src="${apiItem.ModelPhoto}" alt="${apiItem.ModelName}" class="card-image" loading="lazy" decoding="async">
             </div>
-            <div class="card-percentage">${percentage}</div>
+            <div class="card-percentage" style="text-shadow: ${percentageShadow};">${percentage}</div>
             <div class="card-footer">
                 <div class="card-price">${price}</div>
                 <div class="card-multiplier">${multiplier}</div>
@@ -471,6 +559,9 @@ function renderDeals(responseData) {
     window.scrollTo({ top: 0, behavior: 'auto' });
 
     const deals = responseData.Items || [];
+    // Показываем все страницы, которые возвращает API
+    // При попытке перейти на страницу >3 в default режиме 
+    // автоматически переключимся на custom endpoint (логика в fetchDeals)
     totalPages = responseData.TotalPages || 1;
 
     // Filter out items with Count === 0
@@ -536,8 +627,8 @@ function setCachedDeals(payload, response) {
 }
 
 // --- API ---
-async function fetchDeals() {
-    if (isLoading) return;
+async function fetchDeals(newQuery = null) {
+    if (isLoading) return false;
 
     isLoading = true;
     const grid = document.getElementById('nftGrid');
@@ -546,63 +637,60 @@ async function fetchDeals() {
         grid.style.opacity = '0.5';
     }
 
+    // Создаем новый AbortController для этого запроса
+    abortController = new AbortController();
+
+    // Показываем loading overlay с задержкой
+    showLoadingOverlay();
+
     try {
-        const rangeInput = document.getElementById('percentageRange');
-        const markupInput = document.getElementById('markupInput');
+        // Use newQuery if provided (from search button), otherwise use existing activeQuery
+        const queryToUse = newQuery || activeQuery;
 
-        // Check for Default Mode Criteria
-        // MinCoof >= 0.8 (default is 0.8 / 90% in UI)
-        // MaxMarkup <= 30 (default is 30)
-        // No backgrounds, No collections
-        // SortBy monochrome
-        // Page <= 3
-        const currentMinCoof = filterState.ignoreMonochrome ? 0 : (rangeInput ? (parseFloat(rangeInput.value) / 100) : 0.8);
-        const currentMaxMarkup = filterState.ignoreMarkup ? 1000 : (markupInput && markupInput.value ? parseFloat(markupInput.value) : 30);
+        // Use the stored isDefaultMode from the query
+        let isDefaultMode = queryToUse.isDefaultMode;
 
-        let isDefaultMode = true;
+        // ВАЖНО: Если страница > 3 и мы в default режиме, то для страниц >3 нужно перейти на custom endpoint
+        // Потому что в базе (defaults) только первые 150 элементов (3 страницы по 50)
+        const isPageBeyondDefaults = queryToUse.page > 3;
 
-        if (filterState.selectedColors.length > 0) isDefaultMode = false;
-        if (filterState.selectedCollections.length > 0) isDefaultMode = false;
-        if (filterState.sortBy !== 'monochrome' && filterState.sortBy !== 'coof') isDefaultMode = false;
-        // Instruction says MinCoof 80 or higher.
-        if (currentMinCoof < 0.8) isDefaultMode = false;
-        // Instruction says MaxMarkup 30 or lower.
-        if (currentMaxMarkup > 30) isDefaultMode = false;
-        // Page limit for defaults
-        if (filterState.page > 3) isDefaultMode = false;
-
-        // If ignoring monochrome check entirely, it's custom unless user sets range manually high? 
-        // Logic: if ignoreMonochrome is true, currentMinCoof is 0 -> Custom. Correct.
-        // If ignoreMarkup is true, currentMaxMarkup is 1000 -> Custom. Correct.
+        // Если страница за пределами defaults и мы в default режиме, переключаемся на custom
+        if (isDefaultMode && isPageBeyondDefaults) {
+            isDefaultMode = false; // для этого запроса используем custom endpoint
+        }
 
         let url = API_URL;
         let method = 'POST';
         let body = null;
 
-        const requestMaxPrice = filterState.maxPrice !== null ? filterState.maxPrice : 100000;
-        let apiSortBy = filterState.sortBy === 'monochrome' ? 'coof' : filterState.sortBy;
+        const requestMaxPrice = queryToUse.maxPrice !== null ? queryToUse.maxPrice : 100000;
+        let apiSortBy = queryToUse.sortBy === 'monochrome' ? 'coof' : queryToUse.sortBy;
+
+        // Оптимизация: если выбраны ВСЕ фоны, не передаем массив (нет смысла перечислять все 81)
+        const TOTAL_COLORS = colorDefinitions.length; // 81
+        const shouldSendColors = queryToUse.selectedColors.length > 0 &&
+            queryToUse.selectedColors.length < TOTAL_COLORS;
 
         const payload = {
-            "MinCoof": currentMinCoof,
-            "MinPrice": filterState.minPrice,
+            "MinCoof": queryToUse.minCoof,
+            "MinPrice": queryToUse.minPrice,
             "MaxPrice": requestMaxPrice,
-            "MaxMarkupPercent": currentMaxMarkup,
-            "Limit": filterState.limit,
-            "Page": filterState.page,
+            "MaxMarkupPercent": queryToUse.maxMarkup,
+            "Limit": queryToUse.limit,
+            "Page": queryToUse.page,
             "SortBy": apiSortBy,
-            "SortOrder": filterState.sortOrder,
-            "BackgroundNames": filterState.selectedColors.length > 0 ? filterState.selectedColors : null,
-            "CollectionNames": filterState.selectedCollections.length > 0 ? filterState.selectedCollections : null
+            "SortOrder": queryToUse.sortOrder,
+            "BackgroundNames": shouldSendColors ? queryToUse.selectedColors : null,
+            "CollectionNames": queryToUse.selectedCollections.length > 0 ? queryToUse.selectedCollections : null
         };
-        if (filterState.onlyUnique) payload.OnlySingle = true;
+        if (queryToUse.onlyUnique) payload.OnlySingle = true;
 
         if (isDefaultMode) {
             // Use Defaults Endpoint
-            // Assuming GET for defaults with page/limit query params
-            url = `${API_DEFAULTS_URL}?page=${filterState.page}&limit=${filterState.limit}`;
+            url = `${API_DEFAULTS_URL}?page=${queryToUse.page}&limit=${queryToUse.limit}`;
             method = 'GET';
         } else {
-            // Use BesDeals Endpoint (Custom/Private)
+            // Use BestDeals Endpoint (Custom/Private)
             url = API_URL;
             method = 'POST';
             body = JSON.stringify(payload);
@@ -615,18 +703,26 @@ async function fetchDeals() {
         const cached = getCachedDeals(payload);
         if (cached) {
             console.log('Using cached deals data');
+
+            // Update activeQuery only if this was a new search (newQuery provided)
+            if (newQuery) {
+                Object.assign(activeQuery, newQuery);
+            }
+
             renderDeals(cached);
             updateSearchButtonState(false);
             if (grid) grid.style.opacity = '1';
+            hideLoadingOverlay();
             isLoading = false;
-            return;
+            return true; // Return true to indicate success
         }
 
         const fetchOptions = {
             method: method,
             headers: {
                 'Authorization': TelegramApp.getApiKey()
-            }
+            },
+            signal: abortController.signal // Добавляем signal для отмены
         };
         if (method === 'POST') {
             fetchOptions.headers['Content-Type'] = 'application/json';
@@ -635,11 +731,17 @@ async function fetchDeals() {
 
         const response = await fetch(url, fetchOptions);
 
+        // Обработка разных типов ошибок
+        if (response.status === 429) {
+            throw new Error("Rate Limit: Too many requests");
+        }
+
+        if (response.status === 401) {
+            throw new Error("Unauthorized: Authentication required");
+        }
+
         if (response.status === 403) {
-            // Access Denied - Show Modal
-            const accessModal = document.getElementById('accessModal');
-            if (accessModal) openModal(accessModal);
-            throw new Error("Access Denied: Custom filters require whitelist.");
+            throw new Error("Access Denied: Custom filters require whitelist");
         }
 
         if (!response.ok) {
@@ -651,24 +753,60 @@ async function fetchDeals() {
         // Cache the response
         setCachedDeals(payload, data);
 
+        // Update activeQuery only if this was a new search (newQuery provided)
+        if (newQuery) {
+            Object.assign(activeQuery, newQuery);
+        }
+
         renderDeals(data);
         updateSearchButtonState(false);
+        return true;
 
     } catch (error) {
         console.error('Fetch error:', error);
-        // Only clear grid if it's NOT an access denied error (which shows modal)
-        if (error.message.includes("Access Denied")) {
-            // Keep grid as is or clear? Maybe clear to show we couldn't fetch.
-            // But existing content might be better than blank.
-            // Let's keep it.
+
+        // Если запрос был отменен пользователем - не показываем ошибку
+        if (error.name === 'AbortError') {
+            console.log('Request cancelled by user');
+            return false;
+        }
+
+        // Функция для показа модалки
+        const showErrorModal = (modalId) => {
+            const modal = document.getElementById(modalId);
+            if (modal) {
+                const overlay = document.getElementById('overlay');
+                if (overlay) overlay.classList.add('active');
+                modal.classList.add('active');
+                document.body.style.overflow = 'hidden';
+            }
+        };
+
+        // Обработка разных типов ошибок
+        if (error.message.includes("Rate Limit")) {
+            // 429 - Too Many Requests
+            console.warn('Rate limit exceeded');
+            showErrorModal('rateLimitModal');
+        } else if (error.message.includes("Unauthorized")) {
+            // 401 - Unauthorized
+            console.warn('Unauthorized access');
+            showErrorModal('unauthorizedModal');
+        } else if (error.message.includes("Access Denied")) {
+            // 403 - Forbidden
+            console.warn('Access denied - whitelist required');
+            showErrorModal('accessModal');
         } else {
+            // Остальные ошибки - показываем в grid
             if (grid) {
                 grid.innerHTML = '<div style="grid-column: 1/-1; text-align: center; padding: 20px; color: #ff6b6b;">Error loading deals</div>';
             }
         }
+        return false;
     } finally {
+        hideLoadingOverlay();
         if (grid) grid.style.opacity = '1';
         isLoading = false;
+        abortController = null;
     }
 }
 
@@ -710,6 +848,7 @@ function setupLazyCardLoading() {
 }
 
 // --- PAGINATION CONTROLS ---
+// --- PAGINATION CONTROLS ---
 function updatePaginationControls() {
     const paginationControls = document.getElementById('paginationControls');
     const pageIndicator = document.getElementById('pageIndicator');
@@ -719,27 +858,52 @@ function updatePaginationControls() {
     if (!paginationControls) return;
 
     paginationControls.style.display = 'flex';
-    pageIndicator.textContent = `${filterState.page} / ${totalPages}`;
 
-    prevBtn.disabled = filterState.page === 1;
-    nextBtn.disabled = filterState.page >= totalPages;
-}
+    if (pageIndicator) {
+        pageIndicator.textContent = `${activeQuery.page} / ${totalPages}`;
+    }
 
-function goToPreviousPage() {
-    if (isLoading) return;
-    if (filterState.page > 1) {
-        filterState.page--;
-        fetchDeals();
+    if (prevBtn) {
+        prevBtn.disabled = activeQuery.page === 1;
+    }
+
+    if (nextBtn) {
+        nextBtn.disabled = activeQuery.page >= totalPages;
     }
 }
 
-function goToNextPage() {
+async function goToPreviousPage() {
     if (isLoading) return;
-    if (filterState.page < totalPages) {
-        filterState.page++;
-        fetchDeals();
+    if (activeQuery.page > 1) {
+        const previousPage = activeQuery.page;
+        activeQuery.page--;
+        const success = await fetchDeals();
+        if (!success) {
+            // Если ошибка, вернуться к предыдущей странице
+            activeQuery.page = previousPage;
+            updatePaginationControls();
+        }
     }
 }
+
+async function goToNextPage() {
+    if (isLoading) return;
+    if (activeQuery.page < totalPages) {
+        const previousPage = activeQuery.page;
+        activeQuery.page++;
+        const success = await fetchDeals();
+        if (!success) {
+            // Если ошибка (например, недоступна страница >3 без авторизации),
+            // вернуться к предыдущей странице
+            activeQuery.page = previousPage;
+            updatePaginationControls();
+
+            // Если это была попытка перейти на страницу >3 в default режиме,
+            // модалка уже показана в fetchDeals
+        }
+    }
+}
+
 
 
 // --- UI HELPERS FOR LISTS ---
@@ -982,7 +1146,6 @@ function initModals() {
 
             filterState.sortOrder = document.querySelector('input[name="sortOrder"]:checked').value;
             filterState.onlyUnique = document.getElementById('filterOnlyUnique').checked;
-            filterState.page = 1;
 
             closeModal();
             updateSearchButtonState(true);
@@ -1015,7 +1178,6 @@ function initModals() {
         applyColorsBtn.addEventListener('click', () => {
             const selectedEls = document.querySelectorAll('#colorsList .color-option.selected');
             filterState.selectedColors = Array.from(selectedEls).map(el => el.dataset.name);
-            filterState.page = 1;
             closeModal();
             updateSearchButtonState(true);
         });
@@ -1048,7 +1210,6 @@ function initModals() {
         applyCollectionsBtn.addEventListener('click', () => {
             const selectedEls = document.querySelectorAll('#collectionsList .color-option.selected');
             filterState.selectedCollections = Array.from(selectedEls).map(el => el.dataset.name);
-            filterState.page = 1;
             closeModal();
             updateSearchButtonState(true);
         });
@@ -1165,8 +1326,36 @@ document.addEventListener('DOMContentLoaded', () => {
     const btnSearch = document.getElementById('btnSearch');
     if (btnSearch) {
         btnSearch.addEventListener('click', () => {
-            filterState.page = 1;
-            fetchDeals();
+            // Prepare new query from current filter state
+            const rangeInput = document.getElementById('percentageRange');
+            const markupInput = document.getElementById('markupInput');
+
+            const newQuery = {
+                page: 1,
+                limit: 50,
+                minCoof: filterState.ignoreMonochrome ? 0 : (rangeInput ? (parseFloat(rangeInput.value) / 100) : 0.8),
+                maxMarkup: filterState.ignoreMarkup ? 1000 : (markupInput && markupInput.value ? parseFloat(markupInput.value) : 30),
+                minPrice: filterState.minPrice,
+                maxPrice: filterState.maxPrice,
+                sortBy: filterState.sortBy,
+                sortOrder: filterState.sortOrder,
+                selectedColors: [...filterState.selectedColors],
+                selectedCollections: [...filterState.selectedCollections],
+                onlyUnique: filterState.onlyUnique,
+                ignoreMonochrome: filterState.ignoreMonochrome,
+                ignoreMarkup: filterState.ignoreMarkup,
+                isDefaultMode: true
+            };
+
+            // Calculate if this is default mode
+            if (newQuery.minCoof < 0.8) newQuery.isDefaultMode = false;
+            if (newQuery.maxMarkup > 30) newQuery.isDefaultMode = false;
+            if (newQuery.selectedColors.length > 0) newQuery.isDefaultMode = false;
+            if (newQuery.selectedCollections.length > 0) newQuery.isDefaultMode = false;
+            if (newQuery.sortBy !== 'monochrome' && newQuery.sortBy !== 'coof') newQuery.isDefaultMode = false;
+
+            // Pass newQuery to fetchDeals - it will update activeQuery only on success
+            fetchDeals(newQuery);
         });
     }
 
@@ -1179,6 +1368,35 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Fetch last update time from API
     fetchLastUpdateTime();
+
+    // Setup cancel loading button
+    const cancelLoadingBtn = document.getElementById('cancelLoadingBtn');
+    if (cancelLoadingBtn) {
+        cancelLoadingBtn.addEventListener('click', cancelLoading);
+    }
+
+    // Setup error modal close buttons
+    const closeRateLimitBtn = document.getElementById('closeRateLimit');
+    if (closeRateLimitBtn) {
+        closeRateLimitBtn.addEventListener('click', () => {
+            const modal = document.getElementById('rateLimitModal');
+            const overlay = document.getElementById('overlay');
+            if (modal) modal.classList.remove('active');
+            if (overlay) overlay.classList.remove('active');
+            document.body.style.overflow = '';
+        });
+    }
+
+    const closeUnauthorizedBtn = document.getElementById('closeUnauthorized');
+    if (closeUnauthorizedBtn) {
+        closeUnauthorizedBtn.addEventListener('click', () => {
+            const modal = document.getElementById('unauthorizedModal');
+            const overlay = document.getElementById('overlay');
+            if (modal) modal.classList.remove('active');
+            if (overlay) overlay.classList.remove('active');
+            document.body.style.overflow = '';
+        });
+    }
 
     // Setup pagination button handlers
     const prevBtn = document.getElementById('prevPage');

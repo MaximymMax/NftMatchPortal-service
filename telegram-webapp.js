@@ -68,12 +68,22 @@ const TelegramApp = {
 
     /**
      * Get API key based on context
-     * If in Telegram, use initData as authentication
-     * Otherwise, use default API key
+     * Priority: 
+     * 1. Custom key from sessionStorage
+     * 2. Telegram initData
+     * 3. Empty string (will trigger error)
      */
     getApiKey() {
-        // Enable manual override from console
+        // Check sessionStorage for custom API key
+        const customKey = sessionStorage.getItem('custom_api_key');
+        if (customKey) {
+            console.log('Using custom API key from sessionStorage');
+            return customKey;
+        }
+
+        // Enable manual override from console (legacy support)
         if (window.TelegramAuthToken) {
+            console.log('Using API key from window.TelegramAuthToken');
             return window.TelegramAuthToken;
         }
 
@@ -84,6 +94,49 @@ const TelegramApp = {
             console.warn("No API Key available.");
             return "";
         }
+    },
+
+    /**
+     * Set custom API key (can be called from console)
+     * @param {string} key - API key to use for authorization
+     */
+    setCustomApiKey(key) {
+        if (!key || typeof key !== 'string') {
+            console.error('Invalid API key. Please provide a valid string.');
+            return false;
+        }
+
+        sessionStorage.setItem('custom_api_key', key);
+        console.log('✅ Custom API key saved to sessionStorage');
+        console.log('The key will be used for all API requests');
+        console.log('Key will persist until you close the browser tab');
+        return true;
+    },
+
+    /**
+     * Clear custom API key
+     */
+    clearCustomApiKey() {
+        sessionStorage.removeItem('custom_api_key');
+        console.log('✅ Custom API key cleared from sessionStorage');
+        console.log('Now using default authentication method');
+        return true;
+    },
+
+    /**
+     * Get current API key info (for debugging)
+     */
+    getApiKeyInfo() {
+        const customKey = sessionStorage.getItem('custom_api_key');
+        const hasWindowToken = !!window.TelegramAuthToken;
+        const hasTelegramAuth = this.isInTelegram && !!this.initData;
+
+        console.log('=== API Key Info ===');
+        console.log('Custom key (sessionStorage):', customKey ? '✅ Set' : '❌ Not set');
+        console.log('Window token:', hasWindowToken ? '✅ Set' : '❌ Not set');
+        console.log('Telegram auth:', hasTelegramAuth ? '✅ Available' : '❌ Not available');
+        console.log('Currently using:', this.getApiKey() ? 'API key available' : 'No key');
+        console.log('==================');
     },
 
     /**
@@ -257,3 +310,40 @@ if (document.readyState === 'loading') {
 } else {
     TelegramApp.init();
 }
+
+// --- GLOBAL HELPERS FOR CONSOLE ACCESS ---
+// These functions can be called directly from browser console
+
+/**
+ * Set custom API key for authorization
+ * Usage: setApiKey("your-api-key-here")
+ * @param {string} key - API key to use
+ */
+window.setApiKey = function (key) {
+    return TelegramApp.setCustomApiKey(key);
+};
+
+/**
+ * Clear custom API key
+ * Usage: clearApiKey()
+ */
+window.clearApiKey = function () {
+    return TelegramApp.clearCustomApiKey();
+};
+
+/**
+ * Get info about current API key
+ * Usage: getApiKeyInfo()
+ */
+window.getApiKeyInfo = function () {
+    return TelegramApp.getApiKeyInfo();
+};
+
+// Log instructions on page load
+console.log('%c🔑 API Key Management', 'color: #4CAF50; font-size: 16px; font-weight: bold;');
+console.log('%cYou can set a custom API key using the console:', 'color: #2196F3; font-size: 12px;');
+console.log('%csetApiKey("your-key-here")', 'background: #000; color: #0f0; padding: 4px 8px; border-radius: 3px; font-family: monospace;');
+console.log('%cClear API key:', 'color: #2196F3; font-size: 12px;');
+console.log('%cclearApiKey()', 'background: #000; color: #0f0; padding: 4px 8px; border-radius: 3px; font-family: monospace;');
+console.log('%cCheck current key status:', 'color: #2196F3; font-size: 12px;');
+console.log('%cgetApiKeyInfo()', 'background: #000; color: #0f0; padding: 4px 8px; border-radius: 3px; font-family: monospace;');

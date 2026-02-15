@@ -9,9 +9,14 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Lilita+One&display=swap" rel="stylesheet">
+
+    <!-- Lottie Web для анимаций -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/lottie-web/5.12.2/lottie.min.js"></script>
+
     <link rel="stylesheet" href="styles.css">
 
     <link rel="stylesheet" href="styles-fab.css">
+    <link rel="stylesheet" href="styles-loading.css">
 </head>
 
 <body>
@@ -98,6 +103,15 @@
 
         <div class="content-wrapper">
             <div class="nft-grid" id="nftGrid">
+            </div>
+
+            <!-- Loading Overlay (только в области контента) -->
+            <div class="loading-overlay" id="loadingOverlay">
+                <div class="loading-content">
+                    <div class="lottie-container" id="lottieContainer"></div>
+                    <div class="loading-text">Searching for deals...</div>
+                    <button class="cancel-btn" id="cancelLoadingBtn">Cancel</button>
+                </div>
             </div>
         </div>
 
@@ -391,6 +405,64 @@
                     Some gifts shown may have already been sold or removed from the marketplace.<br><br>
                     We recommend verifying availability on the market before purchasing.
                 </p>
+            </div>
+        </div>
+
+        <!-- Rate Limit Modal (429) -->
+        <div class="bottom-sheet" id="rateLimitModal">
+            <div class="sheet-header">
+                <span>⏱️ Too Many Requests</span>
+                <div class="close-btn" id="closeRateLimit">✕</div>
+            </div>
+            <div class="sheet-content">
+                <div class="help-section">
+                    <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#ffa500" stroke-width="2"
+                            stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <polyline points="12 6 12 12 16 14"></polyline>
+                        </svg>
+                        <h3 style="margin: 0; font-size: 18px; color: #fff; font-weight: 400;">Rate Limit Exceeded</h3>
+                    </div>
+                    <p style="font-size: 14px; color: rgba(255,255,255,0.7); line-height: 1.5; margin: 0;">
+                        You've made too many requests in a short period of time.
+                        <br><br>
+                        <strong style="color: #ffa500;">Please wait a moment before trying again.</strong>
+                        <br><br>
+                        Rate limits help ensure fair access for all users. Your previous data remains visible.
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Unauthorized Modal (401) -->
+        <div class="bottom-sheet" id="unauthorizedModal">
+            <div class="sheet-header">
+                <span>🔒 Unauthorized</span>
+                <div class="close-btn" id="closeUnauthorized">✕</div>
+            </div>
+            <div class="sheet-content">
+                <div class="help-section">
+                    <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#ff4d4d" stroke-width="2"
+                            stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                            <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                        </svg>
+                        <h3 style="margin: 0; font-size: 18px; color: #fff; font-weight: 400;">Authentication Required
+                        </h3>
+                    </div>
+                    <p style="font-size: 14px; color: rgba(255,255,255,0.7); line-height: 1.5; margin: 0;">
+                        You are not authorized to access this resource.
+                        <br><br>
+                        <strong style="color: #ff4d4d;">This feature requires authentication.</strong>
+                        <br><br>
+                        Please make sure you're logged in through Telegram or have provided a valid API key.
+                        <br><br>
+                        Need help? Check the console commands with <code
+                            style="background: rgba(255,255,255,0.1); padding: 2px 6px; border-radius: 4px;">getApiKeyInfo()</code>
+                    </p>
+                </div>
             </div>
         </div>
 

@@ -1,0 +1,99 @@
+/* Loading Overlay с Lottie анимацией */
+/* Показывается только в области контента, не на весь экран */
+.loading-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    min-height: 400px;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.95);
+    z-index: 50;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease;
+}
+
+.loading-overlay.active {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.loading-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 25px;
+    padding: 30px;
+    max-width: 90%;
+}
+
+.lottie-container {
+    width: 200px;
+    height: 200px;
+    border-radius: 20px;
+    overflow: hidden;
+}
+
+.loading-text {
+    font-size: 22px;
+    color: #fff;
+    text-align: center;
+    opacity: 0.9;
+    animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+
+    0%,
+    100% {
+        opacity: 0.6;
+    }
+
+    50% {
+        opacity: 1;
+    }
+}
+
+.cancel-btn {
+    padding: 14px 40px;
+    background: rgba(255, 77, 77, 0.15);
+    border: 2px solid rgba(255, 77, 77, 0.5);
+    border-radius: 50px;
+    color: #ff4d4d;
+    font-family: 'Lilita One', cursive;
+    font-size: 18px;
+    cursor: pointer;
+    transition: all 0.2s;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+}
+
+.cancel-btn:hover {
+    background: rgba(255, 77, 77, 0.25);
+    border-color: rgba(255, 77, 77, 0.8);
+    transform: scale(1.05);
+}
+
+.cancel-btn:active {
+    transform: scale(0.95);
+}
+
+@media (max-width: 480px) {
+    .lottie-container {
+        width: 160px;
+        height: 160px;
+    }
+
+    .loading-text {
+        font-size: 18px;
+    }
+
+    .cancel-btn {
+        padding: 12px 32px;
+        font-size: 16px;
+    }
+}

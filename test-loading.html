@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="ru">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Loading Overlay Test</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/lottie-web/5.12.2/lottie.min.js"></script>
+    <link rel="stylesheet" href="styles-loading.css">
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: Arial, sans-serif;
+            background: #000;
+            color: #fff;
+        }
+
+        button {
+            padding: 15px 30px;
+            font-size: 18px;
+            cursor: pointer;
+            margin: 10px;
+            background: #0098ea;
+            color: white;
+            border: none;
+            border-radius: 8px;
+        }
+
+        .info {
+            margin: 20px 0;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>🐱 Loading Overlay Test</h1>
+
+    <div class="info">
+        <h2>Тестирование Loading Overlay</h2>
+        <p>Нажмите кнопку ниже, чтобы показать loading overlay на 3 секунды</p>
+    </div>
+
+    <button id="showBtn">Показать Loading</button>
+    <button id="hideBtn">Скрыть Loading</button>
+    <button id="testBtn">Тест 3 секунды</button>
+
+    <!-- Loading Overlay -->
+    <div class="loading-overlay" id="loadingOverlay" style="display: none;">
+        <div class="loading-content">
+            <div class="lottie-container" id="lottieContainer"></div>
+            <div class="loading-text">Searching for deals...</div>
+            <button class="cancel-btn" id="cancelLoadingBtn">Cancel</button>
+        </div>
+    </div>
+
+    <script>
+        let lottieAnimation = null;
+
+        function initLottieAnimation() {
+            if (!lottieAnimation && window.lottie) {
+                const container = document.getElementById('lottieContainer');
+                if (container) {
+                    console.log('Initializing Lottie...');
+                    lottieAnimation = lottie.loadAnimation({
+                        container: container,
+                        renderer: 'svg',
+                        loop: true,
+                        autoplay: true,
+                        path: 'https://cdn.changes.tg/gifts/models/Spring%20Basket/lottie/Knitty%20Kitty.json'
+                    });
+                    console.log('Lottie initialized!', lottieAnimation);
+                }
+            }
+        }
+
+        function showLoading() {
+            const overlay = document.getElementById('loadingOverlay');
+            console.log('showLoading called, overlay:', overlay);
+
+            if (!lottieAnimation) {
+                initLottieAnimation();
+            }
+
+            if (overlay) {
+                overlay.style.display = 'flex';
+                setTimeout(() => {
+                    overlay.classList.add('active');
+                    console.log('Added active class');
+                }, 10);
+            }
+        }
+
+        function hideLoading() {
+            const overlay = document.getElementById('loadingOverlay');
+            console.log('hideLoading called');
+
+            if (overlay) {
+                overlay.classList.remove('active');
+                setTimeout(() => {
+                    overlay.style.display = 'none';
+                }, 300);
+            }
+        }
+
+        // Event listeners
+        document.getElementById('showBtn').addEventListener('click', () => {
+            console.log('Show button clicked');
+            showLoading();
+        });
+
+        document.getElementById('hideBtn').addEventListener('click', () => {
+            console.log('Hide button clicked');
+            hideLoading();
+        });
+
+        document.getElementById('testBtn').addEventListener('click', () => {
+            console.log('Test button clicked - 3 second test');
+            showLoading();
+            setTimeout(() => {
+                hideLoading();
+            }, 3000);
+        });
+
+        document.getElementById('cancelLoadingBtn').addEventListener('click', () => {
+            console.log('Cancel button clicked');
+            hideLoading();
+        });
+
+        console.log('Test page loaded');
+        console.log('Lottie available:', typeof lottie !== 'undefined');
+    </script>
+</body>
+
+</html>

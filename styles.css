@@ -38,7 +38,7 @@ body {
     padding: 0 15px;
     background: transparent;
     pointer-events: none;
-    padding-top: calc(env(safe-area-inset-top, 0px) + 80px);
+    padding-top: calc(env(safe-area-inset-top, 0px) + 70px);
     /* Выносим в отдельный слой для GPU */
     will-change: transform;
     transform: translateZ(0);
@@ -376,8 +376,12 @@ body {
 
 /* Content Grid */
 .content-wrapper {
+    position: relative;
+    /* Для позиционирования loading overlay */
     padding: 0 15px;
     padding-top: 340px;
+    min-height: 400px;
+    /* Минимальная высота для loading overlay */
 }
 
 .nft-grid {
